@@ -1,5 +1,7 @@
 # トイレットペーパー価格比較サイト 要件定義・設計仕様書（セール情報対応版）
 
+**リポジトリURL**: https://github.com/hrism/toilet-paper-price-compare
+
 ## 1. プロジェクト概要
 
 Amazon内で販売されるトイレットペーパーを対象に、
