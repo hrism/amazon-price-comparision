@@ -166,8 +166,85 @@ class AmazonScraper:
         
         soup = BeautifulSoup(self.driver.page_source, 'html.parser')
         
-        # 商品説明を探す
+        # 商品の基本情報を取得
         detail_info = {}
+        
+        # タイトル
+        title_elem = (
+            soup.select_one('#productTitle') or 
+            soup.select_one('.product-title') or
+            soup.select_one('h1.a-size-large')
+        )
+        if title_elem:
+            detail_info['title'] = title_elem.text.strip()
+        
+        # 価格
+        price_elem = (
+            soup.select_one('.a-price .a-offscreen') or 
+            soup.select_one('.a-price-whole') or
+            soup.select_one('#corePrice_feature_div .a-price .a-offscreen')
+        )
+        if price_elem:
+            price_text = price_elem.text.replace(',', '').replace('￥', '').replace('¥', '').strip()
+            try:
+                detail_info['price'] = int(float(price_text))
+            except:
+                pass
+        
+        # 定価
+        regular_price_elem = soup.select_one('.a-text-price .a-offscreen')
+        if regular_price_elem:
+            regular_text = regular_price_elem.text.replace(',', '').replace('￥', '').replace('¥', '').strip()
+            try:
+                detail_info['price_regular'] = int(float(regular_text))
+            except:
+                pass
+        
+        # セール判定
+        if detail_info.get('price_regular') and detail_info.get('price'):
+            if detail_info['price_regular'] > detail_info['price']:
+                detail_info['on_sale'] = True
+                detail_info['discount_percent'] = int(
+                    ((detail_info['price_regular'] - detail_info['price']) / detail_info['price_regular']) * 100
+                )
+            else:
+                detail_info['on_sale'] = False
+        else:
+            detail_info['on_sale'] = False
+        
+        # 画像
+        img_elem = (
+            soup.select_one('#landingImage') or 
+            soup.select_one('.a-dynamic-image') or
+            soup.select_one('#imgBlkFront')
+        )
+        if img_elem:
+            detail_info['image_url'] = img_elem.get('src')
+        
+        # レビュー
+        rating_elem = soup.select_one('.a-icon-alt')
+        if rating_elem and '5つ星のうち' in rating_elem.text:
+            try:
+                detail_info['review_avg'] = float(rating_elem.text.split('5つ星のうち')[1].strip())
+            except:
+                pass
+        
+        # レビュー件数
+        review_count_elem = soup.select_one('#acrCustomerReviewText')
+        if review_count_elem:
+            count_text = review_count_elem.text.replace(',', '').strip()
+            import re
+            match = re.search(r'(\d+(?:,\d+)*)', count_text)
+            if match:
+                try:
+                    detail_info['review_count'] = int(match.group(1).replace(',', ''))
+                except:
+                    pass
+        
+        # ブランド
+        brand_elem = soup.select_one('#bylineInfo')
+        if brand_elem:
+            detail_info['brand'] = brand_elem.text.strip()
         
         # productDescriptionセクション（商品紹介）
         product_description = soup.select_one('#productDescription')
