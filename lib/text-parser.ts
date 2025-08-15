@@ -8,22 +8,38 @@ interface ExtractedData {
   isDouble: boolean | null;
 }
 
-class TextParser {
-  private tokenizer: any;
+// シングルトンインスタンス
+let tokenizerInstance: any = null;
+let initializationPromise: Promise<any> | null = null;
 
+class TextParser {
   async initialize() {
-    if (!this.tokenizer) {
-      return new Promise((resolve, reject) => {
-        kuromoji.builder({ dicPath: path.join(process.cwd(), 'node_modules/kuromoji/dict') }).build((err: any, tokenizer: any) => {
-          if (err) {
-            reject(err);
-          } else {
-            this.tokenizer = tokenizer;
-            resolve(tokenizer);
-          }
-        });
-      });
+    if (tokenizerInstance) {
+      return tokenizerInstance;
     }
+    
+    if (initializationPromise) {
+      return await initializationPromise;
+    }
+    
+    initializationPromise = new Promise((resolve, reject) => {
+      const dictPath = path.join(process.cwd(), 'node_modules/kuromoji/dict');
+      console.log('Initializing Kuromoji with dict path:', dictPath);
+      
+      kuromoji.builder({ dicPath: dictPath }).build((err: any, tokenizer: any) => {
+        if (err) {
+          console.error('Kuromoji initialization error:', err);
+          initializationPromise = null;
+          reject(err);
+        } else {
+          console.log('Kuromoji initialized successfully');
+          tokenizerInstance = tokenizer;
+          resolve(tokenizer);
+        }
+      });
+    });
+    
+    return await initializationPromise;
   }
 
   private normalizeText(text: string): string {
@@ -39,29 +55,51 @@ class TextParser {
     text = text.replace(/個入り?/g, 'ロール');
     text = text.replace(/メートル/g, 'm');
     text = text.replace(/ｍ/g, 'm');
+    text = text.replace(/mm/g, 'mm');
+    
+    // 「長さ」の前の数値を見つけやすくする
+    text = text.replace(/長さ/g, ' 長さ ');
     
     return text;
   }
 
   async extractProductInfo(title: string, description?: string): Promise<ExtractedData> {
-    await this.initialize();
+    let tokenizer;
+    try {
+      tokenizer = await this.initialize();
+    } catch (error) {
+      console.error('Failed to initialize TextParser:', error);
+      // Kuromojiが失敗した場合、基本的な解析を返す
+      return {
+        rollCount: null,
+        lengthM: null,
+        totalLengthM: null,
+        isDouble: title.includes('ダブル') ? true : title.includes('シングル') ? false : null
+      };
+    }
     
     const combinedText = this.normalizeText(`${title} ${description || ''}`);
-    const tokens = this.tokenizer.tokenize(combinedText);
+    console.log('Analyzing text:', combinedText.substring(0, 100) + '...');
+    
+    const tokens = tokenizer.tokenize(combinedText);
+    console.log(`Tokenized into ${tokens.length} tokens`);
     
     let rollCount: number | null = null;
     let lengthM: number | null = null;
     let packCount = 1;
     let isDouble: boolean | null = null;
+    let totalRollCount: number | null = null;
 
     // シングル/ダブル判定
-    if (combinedText.includes('ダブル') || combinedText.toLowerCase().includes('double')) {
-      isDouble = true;
-    } else if (combinedText.includes('シングル') || combinedText.toLowerCase().includes('single')) {
-      isDouble = false;
+    for (const token of tokens) {
+      if (token.surface_form === 'ダブル' || token.basic_form === 'ダブル') {
+        isDouble = true;
+      } else if (token.surface_form === 'シングル' || token.basic_form === 'シングル') {
+        isDouble = false;
+      }
     }
 
-    // 数値と単位のペアを探す
+    // 数値と単位のペアを探す（前後の文脈も考慮）
     for (let i = 0; i < tokens.length; i++) {
       const token = tokens[i];
       
@@ -69,77 +107,70 @@ class TextParser {
       if (token.pos === '名詞' && token.pos_detail_1 === '数') {
         const num = parseFloat(token.surface_form);
         
-        // 次のトークンを確認
-        if (i + 1 < tokens.length) {
-          const nextToken = tokens[i + 1];
-          const nextSurface = nextToken.surface_form;
+        // 前後のトークンを確認（最大3つ先まで）
+        for (let j = 1; j <= 3 && i + j < tokens.length; j++) {
+          const nearToken = tokens[i + j];
+          const nearSurface = nearToken.surface_form;
+          const nearBasic = nearToken.basic_form;
           
           // メートル数
-          if (nextSurface === 'm' || nextSurface === 'M') {
-            lengthM = num;
+          if (nearSurface === 'm' || nearSurface === 'M' || nearSurface === 'ｍ' || 
+              nearBasic === 'メートル' || nearSurface === 'メートル') {
+            // より大きな数値を長さとして採用
+            if (!lengthM || num > lengthM) {
+              lengthM = num;
+            }
+            break;
           }
           // ロール数
-          else if (nextSurface.includes('ロール') || nextSurface === '巻') {
-            // パック表記があるか確認
-            if (i + 2 < tokens.length && tokens[i + 2].surface_form === '×' && i + 3 < tokens.length) {
-              const packNumToken = tokens[i + 3];
-              if (packNumToken.pos === '名詞' && packNumToken.pos_detail_1 === '数') {
-                rollCount = num;
-                packCount = parseFloat(packNumToken.surface_form);
+          else if (nearSurface === 'ロール' || nearBasic === '巻' || nearSurface === '巻' ||
+                   nearSurface === 'roll' || nearSurface === 'Roll') {
+            // 括弧内の場合は総ロール数として扱う
+            if (i > 0 && (tokens[i-1].surface_form === '（' || tokens[i-1].surface_form === '(')) {
+              totalRollCount = num;
+            }
+            // ×の後の数字を確認
+            else if (i + j + 1 < tokens.length && 
+                     (tokens[i + j + 1].surface_form === '×' || tokens[i + j + 1].surface_form === 'x')) {
+              rollCount = num;
+              // ×の後の数値を探す
+              for (let k = i + j + 2; k < tokens.length && k < i + j + 5; k++) {
+                if (tokens[k].pos === '名詞' && tokens[k].pos_detail_1 === '数') {
+                  packCount = parseFloat(tokens[k].surface_form);
+                  break;
+                }
               }
-            } else {
+            } else if (!rollCount) {
               rollCount = num;
             }
+            break;
           }
           // パック数
-          else if (nextSurface.includes('パック') || nextSurface === 'P') {
+          else if (nearSurface === 'パック' || nearSurface === 'セット' || nearSurface === '袋') {
             packCount = num;
+            break;
           }
-        }
-      }
-    }
-
-    // パターンマッチングでも試す
-    const patterns = [
-      // 12ロール×4パック
-      /(\d+)\s*ロール\s*[×x]\s*(\d+)\s*パック/,
-      // 50m×12ロール
-      /(\d+)\s*m\s*[×x]\s*(\d+)\s*ロール/,
-      // 75mダブル
-      /(\d+)\s*m/,
-      // 12ロール
-      /(\d+)\s*ロール/,
-    ];
-
-    for (const pattern of patterns) {
-      const match = combinedText.match(pattern);
-      if (match) {
-        if (pattern.source.includes('ロール.*パック')) {
-          rollCount = rollCount || parseInt(match[1]);
-          packCount = parseInt(match[2]);
-        } else if (pattern.source.includes('m.*ロール')) {
-          lengthM = lengthM || parseInt(match[1]);
-          rollCount = rollCount || parseInt(match[2]);
-        } else if (pattern.source.includes('m')) {
-          lengthM = lengthM || parseInt(match[1]);
-        } else if (pattern.source.includes('ロール')) {
-          rollCount = rollCount || parseInt(match[1]);
         }
       }
     }
 
     // 総ロール数の計算
-    const totalRolls = rollCount ? rollCount * packCount : null;
+    // 括弧内の総ロール数があればそれを優先
+    const totalRolls = totalRollCount || (rollCount ? rollCount * packCount : null);
     
     // 総メートル数の計算
     const totalLengthM = totalRolls && lengthM ? totalRolls * lengthM : null;
 
-    return {
+    const result = {
       rollCount: totalRolls,
       lengthM,
       totalLengthM,
       isDouble
     };
+    
+    console.log('Extraction result:', result);
+    
+    return result;
   }
 }
 

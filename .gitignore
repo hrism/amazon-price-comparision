@@ -38,3 +38,26 @@ next-env.d.ts
 
 # claude
 .claude/
+
+# python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+python-backend/venv/
+python-backend/__pycache__/
+python-backend/**/__pycache__/
+
+# logs
+*.log
+dev.log
+server.log
+
+# env files  
+.env
+.env.txt
+
+# test files
+lib/test-*.ts
+lib/test-*.js

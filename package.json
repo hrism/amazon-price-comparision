@@ -10,10 +10,16 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.53.0",
+    "@types/puppeteer": "^5.4.7",
     "axios": "^1.11.0",
     "crypto-js": "^4.2.0",
+    "dotenv": "^17.2.1",
     "kuromoji": "^0.1.2",
     "next": "14.2.18",
+    "openai": "^5.11.0",
+    "puppeteer": "^24.15.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
     "react": "^18",
     "react-dom": "^18"
   },
