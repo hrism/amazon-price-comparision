@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
       success: false,
       steps,
       error: errorMessage,
-      stack: errorStack.split('\n').slice(0, 5)
+      stack: errorStack ? errorStack.split('\n').slice(0, 5) : []
     }, { status: 500 });
   }
 }
