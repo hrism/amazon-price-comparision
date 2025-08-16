@@ -49,7 +49,10 @@ export default function Home() {
         params.append('force', 'true');
       }
       
-      const response = await fetch(`http://localhost:8000/api/search?${params}`);
+      const apiUrl = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+        ? 'http://localhost:8000/api/search'
+        : '/api/search';
+      const response = await fetch(`${apiUrl}?${params}`);
       if (!response.ok) throw new Error('Failed to fetch products');
       
       const data = await response.json();
@@ -73,7 +76,10 @@ export default function Home() {
     try {
       console.log(`Refetching product: ${asin}`);
       
-      const response = await fetch(`http://localhost:8000/api/refetch-product/${asin}`, {
+      const apiUrl = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+        ? 'http://localhost:8000/api/refetch-product'
+        : '/api/refetch-product';
+      const response = await fetch(`${apiUrl}/${asin}`, {
         method: 'POST',
       });
       

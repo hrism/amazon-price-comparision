@@ -64,7 +64,10 @@ export default function DishwashingLiquid() {
         params.append('force', 'true');
       }
       
-      const response = await fetch(`http://localhost:8000/api/dishwashing/search?${params}`);
+      const apiUrl = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+        ? 'http://localhost:8000/api/dishwashing/search'
+        : '/api/dishwashing/search';
+      const response = await fetch(`${apiUrl}?${params}`);
       if (!response.ok) throw new Error('Failed to fetch products');
       
       const data = await response.json();
