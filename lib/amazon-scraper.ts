@@ -185,7 +185,7 @@ class AmazonScraper {
       }
       
       // トイレットペーパー関連の商品のみフィルタリング
-      const toiletPaperProducts = products.filter(product => {
+      const toiletPaperProducts = products.filter((product: any) => {
         if (!product.title) return false;
         const title = product.title;
         return title.includes('トイレ') || 
