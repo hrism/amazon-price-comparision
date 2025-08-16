@@ -92,13 +92,13 @@ export default function CategoryBlogSection({ categorySlug, categoryName }: Cate
 
   return (
     <div className="bg-[#F7F8FA] border border-[#D5D9D9] rounded-2xl p-6 mb-8">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
         <h2 className="text-[18px] font-normal text-[#0F1111]">
           📝 {categoryName}に関する記事
         </h2>
         <a 
           href={`/blog/category/${categorySlug}`}
-          className="text-[13px] text-[#007185] hover:text-[#C7511F] hover:underline"
+          className="text-[13px] text-[#007185] hover:text-[#C7511F] hover:underline inline-block"
         >
           すべて見る →
         </a>
@@ -106,36 +106,40 @@ export default function CategoryBlogSection({ categorySlug, categoryName }: Cate
       
       <div className="space-y-4">
         {posts.map((post) => (
-          <article key={post.id} className="flex gap-4 p-3 bg-white rounded-lg border border-[#E3E6E6] hover:shadow-sm transition-shadow">
-            {post.featured_image && (
-              <div className="w-20 h-20 flex-shrink-0">
-                <img 
-                  src={post.featured_image} 
-                  alt={post.title}
-                  className="w-full h-full object-cover rounded"
-                  loading="lazy"
-                />
-              </div>
-            )}
-            
-            <div className="flex-1 min-w-0">
-              <h3 className="text-[14px] font-normal text-[#0F1111] mb-1 hover:text-[#C7511F] transition-colors">
-                <a href={`/blog/${post.slug}`} className="hover:underline">
-                  {post.title}
-                </a>
-              </h3>
-              
-              {post.excerpt && (
-                <p className="text-[12px] text-[#565959] mb-2 line-clamp-2">
-                  {post.excerpt}
-                </p>
+          <a 
+            key={post.id} 
+            href={`/blog/${post.slug}`} 
+            className="block bg-white rounded-lg border border-[#E3E6E6] hover:shadow-md hover:border-[#C7511F] transition-all p-3"
+          >
+            <article>
+              {post.featured_image && (
+                <div className="w-full h-40 sm:h-48 mb-3">
+                  <img 
+                    src={post.featured_image} 
+                    alt={post.title}
+                    className="w-full h-full object-cover rounded"
+                    loading="lazy"
+                  />
+                </div>
               )}
               
-              <div className="text-[11px] text-[#6F7373]">
-                <time>{formatDate(post.published_at)}</time>
+              <div>
+                <h3 className="text-[14px] sm:text-[15px] font-medium text-[#0F1111] mb-2 line-clamp-2">
+                  {post.title}
+                </h3>
+                
+                {post.excerpt && (
+                  <p className="text-[12px] sm:text-[13px] text-[#565959] mb-2 line-clamp-2">
+                    {post.excerpt}
+                  </p>
+                )}
+                
+                <div className="text-[11px] text-[#6F7373]">
+                  <time>{formatDate(post.published_at)}</time>
+                </div>
               </div>
-            </div>
-          </article>
+            </article>
+          </a>
         ))}
       </div>
     </div>

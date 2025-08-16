@@ -7,6 +7,7 @@ import CategoryGrid from '@/components/CategoryGrid';
 import ProductCard from '@/components/ProductCard';
 import ReviewFilter from '@/components/ReviewFilter';
 import CategoryBlogSection from '@/components/CategoryBlogSection';
+import ProductPageHeader from '@/components/ProductPageHeader';
 import { categories } from '@/lib/categories';
 import { productLabels, toiletPaperLabels } from '@/lib/labels';
 
@@ -26,8 +27,8 @@ export default function Home() {
   useEffect(() => {
     // localhost環境かチェック
     setIsLocalhost(
-      typeof window !== 'undefined' && 
-      (window.location.hostname === 'localhost' || 
+      typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' ||
        window.location.hostname === '127.0.0.1' ||
        window.location.hostname.startsWith('192.168.'))
     );
@@ -40,7 +41,7 @@ export default function Home() {
   const fetchProducts = async (forceRefresh = false) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       // forceRefreshの場合、先にスクレイピングを実行
       if (forceRefresh && isLocalhost) {
@@ -50,19 +51,19 @@ export default function Home() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ type: 'toilet_paper' })
         });
-        
+
         if (!scrapeResponse.ok) {
           console.error('Scraping failed:', await scrapeResponse.text());
         } else {
           console.log('Scraping completed');
         }
       }
-      
+
       const params = new URLSearchParams({ keyword: 'トイレットペーパー' });
       if (filterType !== 'all') {
         params.append('filter', filterType);
       }
-      
+
       // 統一APIエンドポイントを使用
       params.append('type', 'toilet_paper');
       const apiUrl = '/api/products';
@@ -72,7 +73,7 @@ export default function Home() {
         console.error('API Error:', errorText);
         throw new Error(`Failed to fetch: ${response.status}`);
       }
-      
+
       const data = await response.json();
       setProducts(data);
     } catch (err) {
@@ -84,32 +85,32 @@ export default function Home() {
 
   const refetchProduct = async (asin: string) => {
     if (refetchingProducts.has(asin)) return; // 既に処理中の場合はスキップ
-    
+
     setRefetchingProducts(prev => {
       const newSet = new Set(prev);
       newSet.add(asin);
       return newSet;
     });
-    
+
     try {
       console.log(`Refetching product: ${asin}`);
-      
+
       // Next.jsのAPIルートを使用
       const apiUrl = '/api/refetch-product';
       const response = await fetch(`${apiUrl}/${asin}`, {
         method: 'POST',
       });
-      
+
       if (!response.ok) {
         throw new Error(`Failed to refetch product: ${response.statusText}`);
       }
-      
+
       const result = await response.json();
       console.log(`Refetch completed for ${asin}:`, result);
-      
+
       // 商品リストを再取得してUIを更新
       await fetchProducts();
-      
+
     } catch (err) {
       console.error(`Error refetching product ${asin}:`, err);
       setError(err instanceof Error ? err.message : 'Failed to refetch product');
@@ -149,34 +150,11 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-white py-4">
       <div className="container mx-auto px-4">
-        <div className="mb-6 text-left border-b border-gray-300 pb-4">
-          <div className="flex items-center gap-3 mb-2">
-            <a 
-              href={`https://www.amazon.co.jp/?tag=${process.env.NEXT_PUBLIC_AMAZON_PARTNER_TAG || 'electlicdista-22'}`}
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="inline-block"
-            >
-              <img 
-                src="/amazon-logo.svg" 
-                alt="Amazon.co.jp" 
-                className="h-8 w-auto"
-              />
-            </a>
-            <h1 className="text-2xl font-normal" style={{ color: '#0F1111' }}>
-              トイレットペーパー価格比較
-            </h1>
-          </div>
-          <div className="text-sm space-y-2" style={{ color: '#565959' }}>
-            <p>
-              このページでは、Amazon.co.jpで販売されているトイレットペーパーを「1メートル単価」で比較できます。
-              2倍巻き・3倍巻きなどの長巻きタイプも正確に計算し、本当にお得な商品を見つけることができます。
-            </p>
-            <p className="text-xs">
-              💡 ポイント：表示価格は自動更新されます。セール情報や割引率も一目で確認できるので、タイミングを逃さずお買い物できます。
-            </p>
-          </div>
-        </div>
+        <ProductPageHeader
+          title="でトイレットペーパーを安く買う"
+          description="このページでは、Amazon.co.jpで販売されているトイレットペーパーを「1メートル単価」で比較できます。2倍巻き・3倍巻きなどの長巻きタイプも正確に計算し、本当にお得な商品を見つけることができます。"
+          tip="表示価格は自動更新されます。セール情報や割引率も一目で確認できるので、タイミングを逃さずお買い物できます。"
+        />
 
         {loading ? (
           <div className="space-y-3">
@@ -252,7 +230,7 @@ export default function Home() {
                       <option value="discount_percent">{toiletPaperLabels.sort.discountPercent}</option>
                     </select>
                   </div>
-                  
+
                   <div>
                     <label className="block text-[11px] font-normal text-[#565959] mb-1">
                       {productLabels.filter.label}
@@ -268,8 +246,8 @@ export default function Home() {
                       <option value="sale">{productLabels.filter.saleOnly}</option>
                     </select>
                   </div>
-                  
-                  <ReviewFilter 
+
+                  <ReviewFilter
                     value={minReviewScore}
                     onChange={setMinReviewScore}
                     productCount={filteredByReview.length}
@@ -292,8 +270,8 @@ export default function Home() {
                     <>
                       {product.is_double !== null && (
                         <span className={`px-2 py-0.5 text-[11px] rounded-2xl ${
-                          product.is_double 
-                            ? 'bg-[#E3F2FD] text-[#0D47A1] border border-[#90CAF9]' 
+                          product.is_double
+                            ? 'bg-[#E3F2FD] text-[#0D47A1] border border-[#90CAF9]'
                             : 'bg-[#E8F5E9] text-[#1B5E20] border border-[#A5D6A7]'
                         }`}>
                           {product.is_double ? toiletPaperLabels.product.double : toiletPaperLabels.product.single}
@@ -321,7 +299,7 @@ export default function Home() {
                       )}
                       {product.review_avg && (
                         <p className="flex items-center">
-                          <span className="text-[#FF9900]">★</span> {product.review_avg} 
+                          <span className="text-[#FF9900]">★</span> {product.review_avg}
                           {product.review_count && (
                             <span className="ml-1">({product.review_count.toLocaleString()}件)</span>
                           )}
@@ -337,14 +315,14 @@ export default function Home() {
             <div className="my-12 border-t border-[#E3E6E6]"></div>
 
             {/* ブログ記事セクション */}
-            <CategoryBlogSection 
-              categorySlug="toilet-paper" 
+            <CategoryBlogSection
+              categorySlug="toilet-paper"
               categoryName="トイレットペーパー"
             />
 
             {/* 他カテゴリーへのリンク */}
-            <CategoryGrid 
-              categories={categories} 
+            <CategoryGrid
+              categories={categories}
               currentCategory="/toilet-paper"
               title={productLabels.category.otherCategories}
               subtitle={productLabels.category.subtitle}

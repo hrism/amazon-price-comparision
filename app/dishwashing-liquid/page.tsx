@@ -6,6 +6,7 @@ import CategoryGrid from '@/components/CategoryGrid';
 import ProductCard from '@/components/ProductCard';
 import ReviewFilter from '@/components/ReviewFilter';
 import CategoryBlogSection from '@/components/CategoryBlogSection';
+import ProductPageHeader from '@/components/ProductPageHeader';
 import { categories } from '@/lib/categories';
 import { productLabels, dishwashingLiquidLabels } from '@/lib/labels';
 
@@ -42,8 +43,8 @@ export default function DishwashingLiquid() {
   useEffect(() => {
     // localhost環境かチェック
     setIsLocalhost(
-      typeof window !== 'undefined' && 
-      (window.location.hostname === 'localhost' || 
+      typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' ||
        window.location.hostname === '127.0.0.1' ||
        window.location.hostname.startsWith('192.168.'))
     );
@@ -56,7 +57,7 @@ export default function DishwashingLiquid() {
   const fetchProducts = async (forceRefresh = false) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       // forceRefreshの場合、先にスクレイピングを実行
       if (forceRefresh && isLocalhost) {
@@ -66,19 +67,19 @@ export default function DishwashingLiquid() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ type: 'dishwashing_liquid' })
         });
-        
+
         if (!scrapeResponse.ok) {
           console.error('Scraping failed:', await scrapeResponse.text());
         } else {
           console.log('Scraping completed');
         }
       }
-      
+
       const params = new URLSearchParams({ keyword: '食器用洗剤' });
       if (filterType !== 'all') {
         params.append('filter', filterType);
       }
-      
+
       // 統一APIエンドポイントを使用
       params.append('type', 'dishwashing_liquid');
       const apiUrl = '/api/products';
@@ -88,7 +89,7 @@ export default function DishwashingLiquid() {
         console.error('API Error:', errorText);
         throw new Error(`Failed to fetch: ${response.status}`);
       }
-      
+
       const data = await response.json();
       setProducts(data);
     } catch (err) {
@@ -100,32 +101,32 @@ export default function DishwashingLiquid() {
 
   const refetchProduct = async (asin: string) => {
     if (refetchingProducts.has(asin)) return; // 既に処理中の場合はスキップ
-    
+
     setRefetchingProducts(prev => {
       const newSet = new Set(prev);
       newSet.add(asin);
       return newSet;
     });
-    
+
     try {
       console.log(`Refetching product: ${asin}`);
-      
+
       // Next.jsのAPIルートを使用
       const apiUrl = '/api/refetch-product';
       const response = await fetch(`${apiUrl}/${asin}`, {
         method: 'POST',
       });
-      
+
       if (!response.ok) {
         throw new Error(`Failed to refetch product: ${response.statusText}`);
       }
-      
+
       const result = await response.json();
       console.log(`Refetch completed for ${asin}:`, result);
-      
+
       // 商品リストを再取得してUIを更新
       await fetchProducts();
-      
+
     } catch (err) {
       console.error(`Error refetching product ${asin}:`, err);
       alert(`価格の再取得に失敗しました: ${err instanceof Error ? err.message : 'Unknown error'}`);
@@ -165,34 +166,11 @@ export default function DishwashingLiquid() {
   return (
     <main className="min-h-screen bg-white py-4">
       <div className="container mx-auto px-4">
-        <div className="mb-6 text-left border-b border-gray-300 pb-4">
-          <div className="flex items-center gap-3 mb-2">
-            <a 
-              href={`https://www.amazon.co.jp/?tag=${process.env.NEXT_PUBLIC_AMAZON_PARTNER_TAG || 'electlicdista-22'}`}
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="inline-block"
-            >
-              <img 
-                src="/amazon-logo.svg" 
-                alt="Amazon.co.jp" 
-                className="h-8 w-auto"
-              />
-            </a>
-            <h1 className="text-2xl font-normal" style={{ color: '#0F1111' }}>
-              食器用洗剤価格比較
-            </h1>
-          </div>
-          <div className="text-sm space-y-2" style={{ color: '#565959' }}>
-            <p>
-              このページでは、Amazon.co.jpで販売されている食器用洗剤を「1000ml単価」で比較できます。
-              詰め替え用と本体の価格差も一目瞭然。本当にお得な商品を見つけることができます。
-            </p>
-            <p className="text-xs">
-              💡 ポイント：詰め替え用は環境にも優しく、多くの場合本体より単価が安くなっています。
-            </p>
-          </div>
-        </div>
+        <ProductPageHeader
+          title="で食器用洗剤を安く買う"
+          description="このページでは、Amazon.co.jpで販売されている食器用洗剤を「1000ml単価」で比較できます。詰め替え用と本体の価格差も一目瞭然。本当にお得な商品を見つけることができます。"
+          tip="詰め替え用は環境にも優しく、多くの場合本体より単価が安くなっています。"
+        />
 
         {loading ? (
           <div className="space-y-3">
@@ -268,7 +246,7 @@ export default function DishwashingLiquid() {
                       <option value="discount_percent">{dishwashingLiquidLabels.sort.discountPercent}</option>
                     </select>
                   </div>
-                  
+
                   <div>
                     <label className="block text-[11px] font-normal text-[#565959] mb-1">
                       {productLabels.filter.label}
@@ -284,8 +262,8 @@ export default function DishwashingLiquid() {
                       <option value="sale">{productLabels.filter.saleOnly}</option>
                     </select>
                   </div>
-                  
-                  <ReviewFilter 
+
+                  <ReviewFilter
                     value={minReviewScore}
                     onChange={setMinReviewScore}
                     productCount={filteredByReview.length}
@@ -329,7 +307,7 @@ export default function DishwashingLiquid() {
                       )}
                       {product.review_avg && (
                         <p className="flex items-center">
-                          <span className="text-[#FF9900]">★</span> {product.review_avg} 
+                          <span className="text-[#FF9900]">★</span> {product.review_avg}
                           {product.review_count && (
                             <span className="ml-1">({product.review_count.toLocaleString()}件)</span>
                           )}
@@ -345,14 +323,14 @@ export default function DishwashingLiquid() {
             <div className="my-12 border-t border-[#E3E6E6]"></div>
 
             {/* ブログ記事セクション */}
-            <CategoryBlogSection 
-              categorySlug="dishwashing-liquid" 
+            <CategoryBlogSection
+              categorySlug="dishwashing-liquid"
               categoryName="食器用洗剤"
             />
 
             {/* 他カテゴリーへのリンク */}
-            <CategoryGrid 
-              categories={categories} 
+            <CategoryGrid
+              categories={categories}
               currentCategory="/dishwashing-liquid"
               title={productLabels.category.otherCategories}
               subtitle={productLabels.category.subtitle}
