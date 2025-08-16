@@ -49,9 +49,11 @@ export default function Home() {
         params.append('force', 'true');
       }
       
+      // 統一APIエンドポイントを使用
+      params.append('type', 'toilet_paper');
       const apiUrl = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
         ? 'http://localhost:8000/api/search'
-        : '/api/search-v2';
+        : '/api/products';
       const response = await fetch(`${apiUrl}?${params}`);
       if (!response.ok) throw new Error('Failed to fetch products');
       
