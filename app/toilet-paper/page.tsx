@@ -5,6 +5,7 @@ import { Product } from '@/lib/supabase';
 import { getAmazonProductUrl } from '@/lib/amazon-link';
 import CategoryGrid from '@/components/CategoryGrid';
 import ProductCard from '@/components/ProductCard';
+import ReviewFilter from '@/components/ReviewFilter';
 import { categories } from '@/lib/categories';
 import { productLabels, toiletPaperLabels } from '@/lib/labels';
 
@@ -17,6 +18,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortKey>('price_per_m');
   const [filterType, setFilterType] = useState<FilterType>('double');
+  const [minReviewScore, setMinReviewScore] = useState<number>(0);
   const [isLocalhost, setIsLocalhost] = useState(false);
   const [refetchingProducts, setRefetchingProducts] = useState<Set<string>>(new Set());
 
@@ -93,7 +95,13 @@ export default function Home() {
     }
   };
 
-  const sortedProducts = [...products].sort((a, b) => {
+  // レビュースコアでフィルタリング
+  const filteredByReview = products.filter(product => {
+    if (minReviewScore === 0) return true;
+    return (product.review_avg || 0) >= minReviewScore;
+  });
+
+  const sortedProducts = [...filteredByReview].sort((a, b) => {
     switch (sortBy) {
       case 'price_per_m':
         return (a.price_per_m || Infinity) - (b.price_per_m || Infinity);
@@ -189,7 +197,8 @@ export default function Home() {
               <div className="flex flex-wrap gap-3 items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span className="text-[13px] font-normal text-[#0F1111]">
-                    {products.length}{productLabels.status.productsCount}
+                    {filteredByReview.length}{productLabels.status.productsCount}
+                    {minReviewScore > 0 && ` (★${minReviewScore.toFixed(1)}以上)`}
                   </span>
                   {isLocalhost && (
                     <button
@@ -232,6 +241,12 @@ export default function Home() {
                       <option value="sale">{productLabels.filter.saleOnly}</option>
                     </select>
                   </div>
+                  
+                  <ReviewFilter 
+                    value={minReviewScore}
+                    onChange={setMinReviewScore}
+                    productCount={filteredByReview.length}
+                  />
                 </div>
               </div>
             </div>
