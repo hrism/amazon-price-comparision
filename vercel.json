@@ -11,9 +11,6 @@
     },
     "api/dishwashing/search.ts": {
       "maxDuration": 30
-    },
-    "api/refetch-product/[asin].ts": {
-      "maxDuration": 60
     }
   },
   "env": {
