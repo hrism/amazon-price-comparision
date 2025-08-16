@@ -6,10 +6,19 @@ import { createClient } from '@supabase/supabase-js';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
+  console.log('API /search called');
+  
   try {
     // Create Supabase client with environment variables
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    
+    console.log('Environment check:', {
+      hasUrl: !!supabaseUrl,
+      hasKey: !!supabaseKey,
+      urlLength: supabaseUrl?.length,
+      keyLength: supabaseKey?.length
+    });
     
     if (!supabaseUrl || !supabaseKey) {
       console.error('Missing Supabase environment variables');
@@ -28,14 +37,16 @@ export async function GET(request: NextRequest) {
     const filter = searchParams.get('filter'); // single, double, sale
     const force = searchParams.get('force') === 'true'; // 強制的に新規取得
 
+    console.log('Request params:', { keyword, filter, force });
+
     if (!keyword) {
       return NextResponse.json({ error: 'Keyword is required' }, { status: 400 });
     }
 
     // まずキャッシュを確認
-    // キーワードが"トイレットペーパー"の場合は全商品を取得
+    // トイレットペーパー用のテーブルを使用
     let query = supabase
-      .from('products')
+      .from('toilet_paper_products')  // productsではなくtoilet_paper_products
       .select('*');
       
     if (keyword !== 'トイレットペーパー') {
@@ -78,8 +89,15 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Search API error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : '';
+    
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error',
+        message: errorMessage,
+        stack: process.env.NODE_ENV === 'development' ? errorStack : undefined
+      },
       { status: 500 }
     );
   }
