@@ -2,6 +2,17 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
+  // 301 Redirect from Vercel domain to custom domain
+  const host = request.headers.get('host');
+  const pathname = request.nextUrl.pathname;
+  
+  // Vercelドメインから独自ドメインへリダイレクト
+  if (host === 'amazon-price-comparision.vercel.app') {
+    const newUrl = new URL(pathname, 'https://www.yasu-ku-kau.com');
+    newUrl.search = request.nextUrl.search;
+    return NextResponse.redirect(newUrl, 301);
+  }
+  
   // CSRF Protection for API routes
   if (request.nextUrl.pathname.startsWith('/api/')) {
     // Skip CSRF check for GET requests and test endpoints

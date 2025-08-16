@@ -10,6 +10,18 @@ export const metadata: Metadata = {
     template: '%s | 安く買う.com'
   },
   description: 'Amazon内で販売される日用品の単価を比較して、本当にお得な商品を見つけます',
+  metadataBase: new URL('https://www.yasu-ku-kau.com'),
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: '安く買う.com - 日用品価格比較',
+    description: 'Amazon内で販売される日用品の単価を比較して、本当にお得な商品を見つけます',
+    url: 'https://www.yasu-ku-kau.com',
+    siteName: '安く買う.com',
+    locale: 'ja_JP',
+    type: 'website',
+  },
 }
 
 export default function RootLayout({
