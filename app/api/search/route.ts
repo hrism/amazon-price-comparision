@@ -5,6 +5,8 @@ import GPTTextParser from '@/lib/gpt-text-parser';
 import { Product } from '@/lib/supabase';
 import { createClient } from '@supabase/supabase-js';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     // Create Supabase client with environment variables
