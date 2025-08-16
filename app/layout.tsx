@@ -5,8 +5,11 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'トイレットペーパー価格比較',
-  description: 'Amazon内で販売されるトイレットペーパーの価格を比較します',
+  title: {
+    default: '安く買う.com - 日用品価格比較',
+    template: '%s | 安く買う.com'
+  },
+  description: 'Amazon内で販売される日用品の単価を比較して、本当にお得な商品を見つけます',
 }
 
 export default function RootLayout({

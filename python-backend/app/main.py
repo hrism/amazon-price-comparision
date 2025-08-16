@@ -414,6 +414,92 @@ async def refetch_single_product(asin: str):
         print(f"Error refetching product {asin}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/dishwashing/search")
+async def search_dishwashing_products(
+    keyword: str = "食器用洗剤",
+    filter: Optional[str] = None,
+    force: bool = False
+):
+    """食器用洗剤の検索エンドポイント"""
+    import time
+    start_time = time.time()
+    
+    try:
+        # 強制更新でない限り、DBキャッシュを優先的に使用
+        if not force:
+            cached_products = await db.get_all_dishwashing_products(filter)
+            if cached_products:
+                print(f"Returning {len(cached_products)} dishwashing products from database")
+                return cached_products
+            else:
+                print("No dishwashing products in database, performing initial scraping...")
+        
+        # force=true の場合のみスクレイピング実行
+        print(f"Force refresh requested - Scraping Amazon for: {keyword}")
+        scraped_products = await scraper.search_products(keyword)
+        print(f"Scraped {len(scraped_products)} products")
+        
+        # 処理と保存
+        processed_products = []
+        for product in scraped_products:
+            if not product.get('title'):
+                continue
+            
+            # ChatGPT解析
+            extracted_info = await text_parser.extract_dishwashing_info(
+                product['title'], 
+                product.get('description', '')
+            )
+            
+            # 単価計算
+            price_per_1000ml = None
+            if product.get('price') and extracted_info.get('volume_ml'):
+                price_per_1000ml = (product['price'] / extracted_info['volume_ml']) * 1000
+            
+            # 商品データ作成
+            processed_product = {
+                'asin': product['asin'],
+                'title': product.get('title', ''),
+                'description': product.get('description'),
+                'brand': product.get('brand'),
+                'image_url': product.get('image_url'),
+                'price': product.get('price'),
+                'price_regular': product.get('price_regular') if product.get('price_regular') and product.get('price_regular') > 0 else None,
+                'discount_percent': product.get('discount_percent'),
+                'on_sale': product.get('on_sale', False),
+                'review_avg': product.get('review_avg'),
+                'review_count': product.get('review_count'),
+                'volume_ml': extracted_info.get('volume_ml'),
+                'price_per_1000ml': price_per_1000ml,
+                'is_refill': extracted_info.get('is_refill', False)
+            }
+            processed_products.append(processed_product)
+        
+        # データベースに保存
+        await db.save_dishwashing_products(processed_products)
+        
+        # フィルタリング
+        if filter == 'refill':
+            processed_products = [p for p in processed_products if p['is_refill'] == True]
+        elif filter == 'regular':
+            processed_products = [p for p in processed_products if p['is_refill'] == False]
+        elif filter == 'sale':
+            processed_products = [p for p in processed_products if p['on_sale']]
+        
+        # ソート（単価順）
+        processed_products.sort(key=lambda p: p['price_per_1000ml'] or float('inf'))
+        
+        total_time = time.time() - start_time
+        print(f"Total processing time: {total_time:.2f}s")
+        
+        return processed_products
+        
+    except Exception as e:
+        import traceback
+        print(f"Error in dishwashing search: {str(e)}")
+        print(f"Full traceback: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.on_event("shutdown")
 async def shutdown_event():
     await scraper.close()

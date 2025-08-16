@@ -31,6 +31,52 @@ class Database:
         
         self.cache_duration = timedelta(hours=4)  # 4時間のキャッシュ
     
+    async def save_dishwashing_products(self, products: List[Dict[str, Any]]) -> None:
+        """食器用洗剤の商品を保存"""
+        if not self.enabled:
+            return
+            
+        try:
+            for product in products:
+                # asinをキーにしてupsert
+                self.supabase.table('dishwashing_liquid_products').upsert(
+                    product,
+                    on_conflict='asin'
+                ).execute()
+            
+            print(f"Saved {len(products)} dishwashing products to database")
+        except Exception as e:
+            print(f"Error saving dishwashing products: {str(e)}")
+    
+    async def get_all_dishwashing_products(self, filter: Optional[str] = None) -> List[Dict[str, Any]]:
+        """食器用洗剤の全商品を取得"""
+        if not self.enabled:
+            return []
+            
+        try:
+            query = self.supabase.table('dishwashing_liquid_products').select('*')
+            
+            # フィルタリング
+            if filter == 'refill':
+                query = query.eq('is_refill', True)
+            elif filter == 'regular':
+                query = query.eq('is_refill', False)
+            elif filter == 'sale':
+                query = query.eq('on_sale', True)
+            
+            # 単価でソート
+            query = query.order('price_per_1000ml', desc=False)
+            
+            response = query.execute()
+            
+            if response.data:
+                return response.data
+            return []
+            
+        except Exception as e:
+            print(f"Error fetching dishwashing products: {str(e)}")
+            return []
+    
     async def get_all_cached_products(self, filter: Optional[str] = None) -> List[Dict[str, Any]]:
         """全てのキャッシュ商品を取得（時間制限なし）"""
         if not self.enabled:

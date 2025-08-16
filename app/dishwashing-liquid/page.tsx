@@ -1,24 +1,39 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Product } from '@/lib/supabase';
 import { getAmazonProductUrl } from '@/lib/amazon-link';
 import CategoryGrid from '@/components/CategoryGrid';
 import ProductCard from '@/components/ProductCard';
 import { categories } from '@/lib/categories';
-import { productLabels, toiletPaperLabels } from '@/lib/labels';
+import { productLabels, dishwashingLiquidLabels } from '@/lib/labels';
 
-type SortKey = 'price_per_m' | 'price_per_roll' | 'discount_percent';
-type FilterType = 'all' | 'single' | 'double' | 'sale';
+type SortKey = 'price_per_1000ml' | 'price' | 'discount_percent';
+type FilterType = 'all' | 'refill' | 'regular' | 'sale';
 
-export default function Home() {
-  const [products, setProducts] = useState<Product[]>([]);
+interface DishwashingProduct {
+  asin: string;
+  title: string;
+  description?: string;
+  brand?: string;
+  image_url?: string;
+  price?: number;
+  price_regular?: number;
+  discount_percent?: number;
+  on_sale: boolean;
+  review_avg?: number;
+  review_count?: number;
+  volume_ml?: number;
+  price_per_1000ml?: number;
+  is_refill?: boolean;
+}
+
+export default function DishwashingLiquid() {
+  const [products, setProducts] = useState<DishwashingProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<SortKey>('price_per_m');
-  const [filterType, setFilterType] = useState<FilterType>('double');
+  const [sortBy, setSortBy] = useState<SortKey>('price_per_1000ml');
+  const [filterType, setFilterType] = useState<FilterType>('all');
   const [isLocalhost, setIsLocalhost] = useState(false);
-  const [refetchingProducts, setRefetchingProducts] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     // localhost環境かチェック
@@ -39,7 +54,7 @@ export default function Home() {
     setError(null);
     
     try {
-      const params = new URLSearchParams({ keyword: 'トイレットペーパー' });
+      const params = new URLSearchParams({ keyword: '食器用洗剤' });
       if (filterType !== 'all') {
         params.append('filter', filterType);
       }
@@ -47,7 +62,7 @@ export default function Home() {
         params.append('force', 'true');
       }
       
-      const response = await fetch(`http://localhost:8000/api/search?${params}`);
+      const response = await fetch(`http://localhost:8000/api/dishwashing/search?${params}`);
       if (!response.ok) throw new Error('Failed to fetch products');
       
       const data = await response.json();
@@ -59,46 +74,12 @@ export default function Home() {
     }
   };
 
-  const refetchProduct = async (asin: string) => {
-    if (refetchingProducts.has(asin)) return; // 既に処理中の場合はスキップ
-    
-    setRefetchingProducts(prev => new Set([...prev, asin]));
-    
-    try {
-      console.log(`Refetching product: ${asin}`);
-      
-      const response = await fetch(`http://localhost:8000/api/refetch-product/${asin}`, {
-        method: 'POST',
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to refetch product: ${response.statusText}`);
-      }
-      
-      const result = await response.json();
-      console.log(`Refetch completed for ${asin}:`, result);
-      
-      // 商品リストを再取得してUIを更新
-      await fetchProducts();
-      
-    } catch (err) {
-      console.error(`Error refetching product ${asin}:`, err);
-      setError(err instanceof Error ? err.message : 'Failed to refetch product');
-    } finally {
-      setRefetchingProducts(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(asin);
-        return newSet;
-      });
-    }
-  };
-
   const sortedProducts = [...products].sort((a, b) => {
     switch (sortBy) {
-      case 'price_per_m':
-        return (a.price_per_m || Infinity) - (b.price_per_m || Infinity);
-      case 'price_per_roll':
-        return (a.price_per_roll || Infinity) - (b.price_per_roll || Infinity);
+      case 'price_per_1000ml':
+        return (a.price_per_1000ml || Infinity) - (b.price_per_1000ml || Infinity);
+      case 'price':
+        return (a.price || Infinity) - (b.price || Infinity);
       case 'discount_percent':
         return (b.discount_percent || 0) - (a.discount_percent || 0);
       default:
@@ -108,7 +89,7 @@ export default function Home() {
 
   const formatUnitPrice = (price?: number) => {
     if (!price) return '-';
-    return `¥${price.toFixed(2)}`;
+    return `¥${price.toFixed(1)}`;
   };
 
   return (
@@ -129,16 +110,16 @@ export default function Home() {
               />
             </a>
             <h1 className="text-2xl font-normal" style={{ color: '#0F1111' }}>
-              トイレットペーパー価格比較
+              食器用洗剤価格比較
             </h1>
           </div>
           <div className="text-sm space-y-2" style={{ color: '#565959' }}>
             <p>
-              このページでは、Amazon.co.jpで販売されているトイレットペーパーを「1メートル単価」で比較できます。
-              2倍巻き・3倍巻きなどの長巻きタイプも正確に計算し、本当にお得な商品を見つけることができます。
+              このページでは、Amazon.co.jpで販売されている食器用洗剤を「1000ml単価」で比較できます。
+              詰め替え用と本体の価格差も一目瞭然。本当にお得な商品を見つけることができます。
             </p>
             <p className="text-xs">
-              💡 ポイント：表示価格は自動更新されます。セール情報や割引率も一目で確認できるので、タイミングを逃さずお買い物できます。
+              💡 ポイント：詰め替え用は環境にも優しく、多くの場合本体より単価が安くなっています。
             </p>
           </div>
         </div>
@@ -211,9 +192,9 @@ export default function Home() {
                       onChange={(e) => setSortBy(e.target.value as SortKey)}
                       className="px-2 py-1 text-[13px] border border-[#D5D9D9] rounded-2xl bg-[#F0F2F2] hover:bg-[#E3E6E6] cursor-pointer"
                     >
-                      <option value="price_per_m">{toiletPaperLabels.sort.pricePerMeter}</option>
-                      <option value="price_per_roll">{toiletPaperLabels.sort.pricePerRoll}</option>
-                      <option value="discount_percent">{toiletPaperLabels.sort.discountPercent}</option>
+                      <option value="price_per_1000ml">{dishwashingLiquidLabels.sort.pricePerLiter}</option>
+                      <option value="price">{dishwashingLiquidLabels.sort.price}</option>
+                      <option value="discount_percent">{dishwashingLiquidLabels.sort.discountPercent}</option>
                     </select>
                   </div>
                   
@@ -227,8 +208,8 @@ export default function Home() {
                       className="px-2 py-1 text-[13px] border border-[#D5D9D9] rounded-2xl bg-[#F0F2F2] hover:bg-[#E3E6E6] cursor-pointer"
                     >
                       <option value="all">{productLabels.filter.all}</option>
-                      <option value="single">{toiletPaperLabels.filter.singleOnly}</option>
-                      <option value="double">{toiletPaperLabels.filter.doubleOnly}</option>
+                      <option value="refill">{dishwashingLiquidLabels.filter.refillOnly}</option>
+                      <option value="regular">{dishwashingLiquidLabels.filter.regularOnly}</option>
                       <option value="sale">{productLabels.filter.saleOnly}</option>
                     </select>
                   </div>
@@ -244,38 +225,28 @@ export default function Home() {
                   index={index}
                   sortBy={sortBy}
                   isLocalhost={isLocalhost}
-                  refetchingProducts={refetchingProducts}
-                  onRefetch={refetchProduct}
                   renderBadges={(product) => (
                     <>
-                      {product.is_double !== null && (
-                        <span className={`px-2 py-0.5 text-[11px] rounded-2xl ${
-                          product.is_double 
-                            ? 'bg-[#E3F2FD] text-[#0D47A1] border border-[#90CAF9]' 
-                            : 'bg-[#E8F5E9] text-[#1B5E20] border border-[#A5D6A7]'
-                        }`}>
-                          {product.is_double ? toiletPaperLabels.product.double : toiletPaperLabels.product.single}
+                      {product.is_refill ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          {dishwashingLiquidLabels.product.refill}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {dishwashingLiquidLabels.product.regular}
                         </span>
                       )}
                     </>
                   )}
                   renderUnitPrice={(product) => (
-                    <>
-                      <p className="text-[17px] font-normal text-[#B12704]">
-                        {formatUnitPrice(product.price_per_m)}{toiletPaperLabels.product.perMeter}
-                      </p>
-                      <p className="text-[13px] text-[#565959]">
-                        {formatUnitPrice(product.price_per_roll)}{toiletPaperLabels.product.perRoll}
-                      </p>
-                    </>
+                    <p className="text-[17px] font-normal text-[#B12704]">
+                      {formatUnitPrice(product.price_per_1000ml)}{dishwashingLiquidLabels.product.perLiter}
+                    </p>
                   )}
                   renderProductDetails={(product) => (
                     <>
-                      {product.roll_count && (
-                        <p>{toiletPaperLabels.product.totalRolls}: {product.roll_count}{toiletPaperLabels.product.rolls}</p>
-                      )}
-                      {product.length_m && (
-                        <p>{toiletPaperLabels.product.rollLength}: {product.length_m}{toiletPaperLabels.product.meter}</p>
+                      {product.volume_ml && (
+                        <p>{dishwashingLiquidLabels.product.volume}: {product.volume_ml}{dishwashingLiquidLabels.product.milliliter}</p>
                       )}
                       {product.review_avg && (
                         <p className="flex items-center">
@@ -294,7 +265,7 @@ export default function Home() {
             {/* 他カテゴリーへのリンク */}
             <CategoryGrid 
               categories={categories} 
-              currentCategory="/toilet-paper"
+              currentCategory="/dishwashing-liquid"
               title={productLabels.category.otherCategories}
               subtitle={productLabels.category.subtitle}
             />

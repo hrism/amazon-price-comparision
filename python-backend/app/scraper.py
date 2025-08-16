@@ -81,16 +81,46 @@ class AmazonScraper:
                 except:
                     pass
             
-            # 定価
+            # 商品説明を先に収集（定価取得で使用するため）
+            description_parts = []
+            # タイトル以外の全てのテキスト要素を収集
+            for elem in item.select('.a-size-base, .a-size-base-plus, .a-size-mini, .s-feature-text, .a-color-secondary'):
+                text = elem.text.strip()
+                if text and text != product.get('title') and len(text) > 5:
+                    description_parts.append(text)
+            
+            # 定価（複数のセレクタで試す）
             regular_price_elem = item.select_one('.a-text-price .a-offscreen')
             if not regular_price_elem:
                 regular_price_elem = item.select_one('.a-text-price')
+            if not regular_price_elem:
+                # span.a-price.a-text-price.a-size-base の場合
+                regular_price_elem = item.select_one('span.a-price.a-text-price span.a-offscreen')
+            
             if regular_price_elem:
                 regular_text = regular_price_elem.text.replace(',', '').replace('￥', '').replace('¥', '').strip()
                 try:
-                    product['price_regular'] = int(float(regular_text))
+                    potential_regular = int(float(regular_text))
+                    # 定価が現在価格より高い場合のみ設定
+                    if potential_regular > product.get('price', 0):
+                        product['price_regular'] = potential_regular
                 except:
                     pass
+            
+            # 定価が取得できない場合、descriptionから「参考:」価格を探す
+            if not product.get('price_regular') and description_parts:
+                import re
+                for part in description_parts:
+                    # 「参考: ￥490」のパターンを探す
+                    match = re.search(r'参考[:：]?\s*[￥¥]?([\d,]+)', part)
+                    if match:
+                        try:
+                            ref_price = int(match.group(1).replace(',', ''))
+                            if ref_price > product.get('price', 0):  # 参考価格が現在価格より高い場合のみ
+                                product['price_regular'] = ref_price
+                                break
+                        except:
+                            pass
             
             # セール判定
             if product.get('price_regular') and product.get('price'):
@@ -137,14 +167,7 @@ class AmazonScraper:
                     except:
                         pass
             
-            # 商品説明を収集（より多くの情報を取得）
-            description_parts = []
-            # タイトル以外の全てのテキスト要素を収集
-            for elem in item.select('.a-size-base, .a-size-base-plus, .a-size-mini, .s-feature-text, .a-color-secondary'):
-                text = elem.text.strip()
-                if text and text != product.get('title') and len(text) > 5:
-                    description_parts.append(text)
-            
+            # 商品説明を辞書に追加
             if description_parts:
                 product['description'] = ' '.join(description_parts)
             
