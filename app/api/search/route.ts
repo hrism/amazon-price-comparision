@@ -1,7 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
-// Vercel Functions用: Supabaseから直接データを取得
-import { Product } from '@/lib/supabase';
 import { createClient } from '@supabase/supabase-js';
+
+// Product型定義をここに移動（lib/supabaseからのインポートを避ける）
+interface Product {
+  id?: string;
+  asin: string;
+  title: string;
+  description?: string;
+  brand?: string;
+  image_url?: string;
+  price?: number;
+  price_regular?: number;
+  discount_percent?: number;
+  on_sale: boolean;
+  review_avg?: number;
+  review_count?: number;
+  roll_count?: number;
+  length_m?: number;
+  total_length_m?: number;
+  price_per_roll?: number;
+  price_per_m?: number;
+  is_double?: boolean;
+  last_fetched_at?: string;
+  created_at?: string;
+}
 
 export const dynamic = 'force-dynamic';
 
