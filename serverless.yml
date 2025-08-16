@@ -1,0 +1,51 @@
+# サーバーレス構成（月額約$5）
+service: toilet-paper-api
+
+provider:
+  name: aws
+  runtime: python3.11
+  region: ap-northeast-1
+  timeout: 30
+  memorySize: 512
+  environment:
+    OPENAI_API_KEY: ${env:OPENAI_API_KEY}
+    NEXT_PUBLIC_SUPABASE_URL: ${env:NEXT_PUBLIC_SUPABASE_URL}
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: ${env:NEXT_PUBLIC_SUPABASE_ANON_KEY}
+
+functions:
+  # API エンドポイント
+  api:
+    handler: lambda_api.handler
+    events:
+      - http:
+          path: /api/search
+          method: GET
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+    layers:
+      - arn:aws:lambda:ap-northeast-1:xxxx:layer:chrome-selenium:1
+
+  # 定期更新（4時間ごと）
+  updatePrices:
+    handler: lambda_function.lambda_handler
+    timeout: 300
+    memorySize: 1024
+    events:
+      - schedule: rate(4 hours)
+    layers:
+      - arn:aws:lambda:ap-northeast-1:xxxx:layer:chrome-selenium:1
+
+plugins:
+  - serverless-python-requirements
+
+custom:
+  pythonRequirements:
+    dockerizePip: true
+    layer: true

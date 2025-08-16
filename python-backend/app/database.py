@@ -3,9 +3,15 @@ from datetime import datetime, timedelta
 import os
 from supabase import create_client, Client
 import json
+from dotenv import load_dotenv
+from pathlib import Path
 
 class Database:
     def __init__(self):
+        # Load .env file from python-backend directory
+        env_path = Path(__file__).parent.parent / '.env'
+        load_dotenv(env_path)
+        
         url = os.environ.get("NEXT_PUBLIC_SUPABASE_URL")
         key = os.environ.get("NEXT_PUBLIC_SUPABASE_ANON_KEY")
         

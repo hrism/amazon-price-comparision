@@ -2,14 +2,47 @@
 
 **リポジトリURL**: https://github.com/hrism/toilet-paper-price-compare
 
+## ローカル環境での起動方法
+
+### 1. 依存関係のインストール
+```bash
+npm install
+```
+
+### 2. 環境変数の設定
+`.env`ファイルに以下の環境変数を設定:
+- `AMAZON_ACCESS_KEY`: Amazon PA-API アクセスキー
+- `AMAZON_SECRET_KEY`: Amazon PA-API シークレットキー
+- `OPENAI_API_KEY`: OpenAI APIキー（テキスト解析用）
+
+### 3. Pythonバックエンドの起動
+```bash
+cd python-backend
+source venv/bin/activate  # macOS/Linux
+# Windows: venv\Scripts\activate
+pip install -r requirements.txt  # 初回のみ
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### 4. Next.jsフロントエンドの起動
+```bash
+npm run dev
+```
+
+### アクセスURL
+- **フロントエンド**: http://localhost:3000
+- **バックエンドAPI**: http://localhost:8000
+
+---
+
 ## 1. プロジェクト概要
 
 Amazon内で販売されるトイレットペーパーを対象に、
  **1ロール単価・1m単価・レビュー点数・セール情報**を用いた価格比較が可能なWebサービスを構築する。
 
-- Amazon Product Advertising API（PA-API）を利用して商品情報を取得
+- Webスクレイピングを利用して商品情報を取得（※PA-API認証待ち）
 - 検索キーワードから商品情報を収集し、Supabaseにキャッシュ
-- タイトル・説明文から自然言語処理で数量を抽出し単価計算
+- ChatGPT APIで商品タイトル・説明文から数量を正確に抽出し単価計算
 - シングル／ダブルでのフィルタリング可能
 - セール価格がある場合は通常価格・割引率を表示
 

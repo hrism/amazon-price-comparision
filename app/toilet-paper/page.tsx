@@ -133,9 +133,15 @@ export default function Home() {
               トイレットペーパー価格比較
             </h1>
           </div>
-          <p className="text-sm" style={{ color: '#565959' }}>
-            Amazon内のトイレットペーパーを1m単価でランキング
-          </p>
+          <div className="text-sm space-y-2" style={{ color: '#565959' }}>
+            <p>
+              このページでは、Amazon.co.jpで販売されているトイレットペーパーを「1メートル単価」で比較できます。
+              2倍巻き・3倍巻きなどの長巻きタイプも正確に計算し、本当にお得な商品を見つけることができます。
+            </p>
+            <p className="text-xs">
+              💡 ポイント：表示価格は自動更新されます。セール情報や割引率も一目で確認できるので、タイミングを逃さずお買い物できます。
+            </p>
+          </div>
         </div>
 
         {loading ? (
