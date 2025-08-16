@@ -64,7 +64,11 @@ export default function Home() {
   const refetchProduct = async (asin: string) => {
     if (refetchingProducts.has(asin)) return; // 既に処理中の場合はスキップ
     
-    setRefetchingProducts(prev => new Set([...prev, asin]));
+    setRefetchingProducts(prev => {
+      const newSet = new Set(prev);
+      newSet.add(asin);
+      return newSet;
+    });
     
     try {
       console.log(`Refetching product: ${asin}`);
