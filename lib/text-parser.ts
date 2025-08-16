@@ -1,3 +1,4 @@
+// @ts-ignore
 import kuromoji from 'kuromoji';
 import path from 'path';
 
