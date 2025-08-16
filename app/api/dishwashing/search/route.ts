@@ -6,8 +6,17 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     // Create Supabase client with environment variables
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('Missing Supabase environment variables');
+      return NextResponse.json({ 
+        error: 'Configuration error', 
+        details: 'Missing Supabase credentials' 
+      }, { status: 500 });
+    }
+    
     const supabase = createClient(supabaseUrl, supabaseKey);
     
     const searchParams = request.nextUrl.searchParams;

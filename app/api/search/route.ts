@@ -8,8 +8,19 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     // Create Supabase client with environment variables
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('Missing Supabase environment variables');
+      return NextResponse.json({ 
+        error: 'Configuration error', 
+        details: 'Missing Supabase credentials',
+        hasUrl: !!supabaseUrl,
+        hasKey: !!supabaseKey 
+      }, { status: 500 });
+    }
+    
     const supabase = createClient(supabaseUrl, supabaseKey);
     
     const searchParams = request.nextUrl.searchParams;
@@ -43,6 +54,14 @@ export async function GET(request: NextRequest) {
     }
 
     const { data: cachedProducts, error: cacheError } = await query;
+    
+    if (cacheError) {
+      console.error('Supabase query error:', cacheError);
+      return NextResponse.json({ 
+        error: 'Database query failed', 
+        details: cacheError.message 
+      }, { status: 500 });
+    }
 
     console.log('Cache check - Found products:', cachedProducts?.length || 0);
     console.log('Force parameter:', force);
