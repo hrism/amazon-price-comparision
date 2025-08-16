@@ -6,6 +6,7 @@ import { getAmazonProductUrl } from '@/lib/amazon-link';
 import CategoryGrid from '@/components/CategoryGrid';
 import ProductCard from '@/components/ProductCard';
 import ReviewFilter from '@/components/ReviewFilter';
+import CategoryBlogSection from '@/components/CategoryBlogSection';
 import { categories } from '@/lib/categories';
 import { productLabels, toiletPaperLabels } from '@/lib/labels';
 
@@ -41,21 +42,36 @@ export default function Home() {
     setError(null);
     
     try {
+      // forceRefreshの場合、先にスクレイピングを実行
+      if (forceRefresh && isLocalhost) {
+        console.log('Starting scraping...');
+        const scrapeResponse = await fetch('/api/scrape', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'toilet_paper' })
+        });
+        
+        if (!scrapeResponse.ok) {
+          console.error('Scraping failed:', await scrapeResponse.text());
+        } else {
+          console.log('Scraping completed');
+        }
+      }
+      
       const params = new URLSearchParams({ keyword: 'トイレットペーパー' });
       if (filterType !== 'all') {
         params.append('filter', filterType);
       }
-      if (forceRefresh) {
-        params.append('force', 'true');
-      }
       
       // 統一APIエンドポイントを使用
       params.append('type', 'toilet_paper');
-      const apiUrl = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-        ? 'http://localhost:8000/api/search'
-        : '/api/products';
+      const apiUrl = '/api/products';
       const response = await fetch(`${apiUrl}?${params}`);
-      if (!response.ok) throw new Error('Failed to fetch products');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error:', errorText);
+        throw new Error(`Failed to fetch: ${response.status}`);
+      }
       
       const data = await response.json();
       setProducts(data);
@@ -78,9 +94,8 @@ export default function Home() {
     try {
       console.log(`Refetching product: ${asin}`);
       
-      const apiUrl = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-        ? 'http://localhost:8000/api/refetch-product'
-        : '/api/refetch-product';
+      // Next.jsのAPIルートを使用
+      const apiUrl = '/api/refetch-product';
       const response = await fetch(`${apiUrl}/${asin}`, {
         method: 'POST',
       });
@@ -317,6 +332,15 @@ export default function Home() {
                 />
               ))}
             </div>
+
+            {/* セクション区切り */}
+            <div className="my-12 border-t border-[#E3E6E6]"></div>
+
+            {/* ブログ記事セクション */}
+            <CategoryBlogSection 
+              categorySlug="toilet-paper" 
+              categoryName="トイレットペーパー"
+            />
 
             {/* 他カテゴリーへのリンク */}
             <CategoryGrid 

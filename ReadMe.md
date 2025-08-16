@@ -1,178 +1,157 @@
-# トイレットペーパー価格比較サイト 要件定義・設計仕様書（セール情報対応版）
+# Amazon Price Comparison - 日用品価格比較サイト
 
-**リポジトリURL**: https://github.com/hrism/toilet-paper-price-compare
+日用品（トイレットペーパー・食器用洗剤）のAmazon価格を自動収集し、単価比較で最適な商品を見つけるWebアプリケーション。ブログ機能を統合し、商品レビューや比較記事も配信。
 
-## ローカル環境での起動方法
+**本番環境**: https://amazon-price-comparision.vercel.app  
+**リポジトリ**: https://github.com/hrism/toilet-paper-price-compare
 
-### 1. 依存関係のインストール
+## 🎯 主要機能
+
+### 価格比較システム
+- **トイレットペーパー**: 1ロール単価・1m単価で比較
+- **食器用洗剤**: 1000ml単価で比較  
+- **自動更新**: 4時間ごとにAmazonから最新価格を取得
+- **スマート解析**: OpenAI APIで商品情報を自動解析
+
+### ブログ機能
+- **リッチテキストエディタ**: MDXEditorによる記事作成
+- **画像管理**: Supabase Storageで画像アップロード
+- **カテゴリ別表示**: 商品ページに関連記事を自動表示
+- **SEO最適化**: メタタグ・OGP対応
+
+### セキュリティ
+- **ブルートフォース対策**: 5回失敗で48時間アカウントロック
+- **レート制限**: API呼び出し制限（10リクエスト/分）
+- **CSRF保護**: APIエンドポイントの保護
+- **セキュリティヘッダー**: XSS・クリックジャッキング対策
+
+## 🚀 クイックスタート
+
+### 必要要件
+- Node.js 18+
+- Python 3.11+
+- Supabaseアカウント
+- OpenAI APIキー
+
+### 1. リポジトリのクローン
 ```bash
-npm install
+git clone https://github.com/hrism/toilet-paper-price-compare.git
+cd toilet-paper-price-compare
 ```
 
 ### 2. 環境変数の設定
-`.env`ファイルに以下の環境変数を設定:
-- `AMAZON_ACCESS_KEY`: Amazon PA-API アクセスキー
-- `AMAZON_SECRET_KEY`: Amazon PA-API シークレットキー
-- `OPENAI_API_KEY`: OpenAI APIキー（テキスト解析用）
+`.env.local`ファイルを作成:
+```env
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 
-### 3. Pythonバックエンドの起動
+# OpenAI
+OPENAI_API_KEY=your_openai_api_key
+
+# Amazon Partner
+NEXT_PUBLIC_AMAZON_PARTNER_TAG=your_partner_tag
+```
+
+### 3. 依存関係のインストール
 ```bash
+# フロントエンド
+npm install
+
+# バックエンド（オプション：ローカル開発用）
 cd python-backend
-source venv/bin/activate  # macOS/Linux
-# Windows: venv\Scripts\activate
-pip install -r requirements.txt  # 初回のみ
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-### 4. Next.jsフロントエンドの起動
+### 4. 開発サーバーの起動
 ```bash
+# フロントエンド
 npm run dev
+
+# バックエンド（オプション）
+cd python-backend
+uvicorn app.main:app --reload --port 8000
 ```
 
-### アクセスURL
-- **フロントエンド**: http://localhost:3000
-- **バックエンドAPI**: http://localhost:8000
+### 5. アクセス
+- フロントエンド: http://localhost:3000
+- 管理画面: http://localhost:3000/admin
+- APIドキュメント: http://localhost:8000/docs （ローカルバックエンド使用時）
 
----
-
-## 1. プロジェクト概要
-
-Amazon内で販売されるトイレットペーパーを対象に、
- **1ロール単価・1m単価・レビュー点数・セール情報**を用いた価格比較が可能なWebサービスを構築する。
-
-- Webスクレイピングを利用して商品情報を取得（※PA-API認証待ち）
-- 検索キーワードから商品情報を収集し、Supabaseにキャッシュ
-- ChatGPT APIで商品タイトル・説明文から数量を正確に抽出し単価計算
-- シングル／ダブルでのフィルタリング可能
-- セール価格がある場合は通常価格・割引率を表示
-
-------
-
-## 2. 対象範囲
-
-### 2.1 対象商品
-
-- トイレットペーパー（シングル／ダブル問わず）
-- Amazon.co.jpで販売される商品
-- Amazon Product Advertising API（PA-API v5）で取得可能な商品
-
-### 2.2 除外商品
-
-- 明確にトイレットペーパーでない商品（ギフトセット・オムツ等）
-- 価格情報が取得できない商品
-- 在庫なし商品
-
-------
-
-## 3. 取得データ要件（PA-API）
-
-| 項目                 | 必須 | 備考                               |
-| -------------------- | ---- | ---------------------------------- |
-| ASIN                 | ○    | 一意識別子                         |
-| 商品タイトル         | ○    | ItemInfo.Title                     |
-| 商品説明             | ○    | ItemInfo.Features or ContentInfo   |
-| ブランド名           | 任意 | ItemInfo.ByLineInfo                |
-| 商品画像URL          | ○    | Images.Primary.Large               |
-| 通常価格（割引前）   | ○    | Offers.Listings.SavingBasis.Amount |
-| 販売価格（割引後）   | ○    | Offers.Listings.Price.Amount       |
-| 割引率（％）         | ○    | Offers.Listings.PercentageSaved    |
-| セール中判定         | ○    | SavingBasisありかつPrice<通常価格  |
-| レビュー平均点（星） | ○    | CustomerReviews.StarRating         |
-| レビュー件数         | ○    | CustomerReviews.Count              |
-
-
-
-------
-
-## 4. 単価算出・セール判定ロジック
-
-### 4.1 自然言語処理による数量抽出
-
-1. **テキスト正規化**
-
-   - 全角/半角統一
-   - 「×」「x」「X」「✕」を「×」に統一
-   - 「巻」「ロール」「個入」を「ロール」に統一
-   - 単位をmに統一
-
-2. **形態素解析・数量抽出**
-
-   - `SudachiPy`または`spaCy+GiNZA`で「数値＋単位」を抽出
-   - 候補：`50m`, `12ロール`, `3パック` 等
-
-3. **総ロール数計算**
-
-   - `(ロール × パック)` 優先
-   - 単独ロール表記も対応（例：30巻 → 30）
-
-4. **総メートル数計算**
-
-   ```
-   ini
-   
-   
-   CopyEdit
-   total_length_m = roll_count × length_m
-   ```
-
-5. **単価計算**
-
-   ```
-   CopyEdit
-   1ロール単価 = 販売価格 ÷ roll_count
-   1m単価     = 販売価格 ÷ total_length_m
-   ```
-
-6. **シングル／ダブル判定**
-
-   - タイトル・説明文に「ダブル」「シングル」があれば設定
-   - 結果表示時にフィルタ可能
-
-7. **セール判定**
-
-   - `SavingBasis.Amount` が存在かつ `Price.Amount` < `SavingBasis.Amount` ならセール中
-   - 割引率は `PercentageSaved` を使用（なければ計算）
-
-------
-
-### 4.2 抽出例
-
-商品タイトル：
+## 📂 プロジェクト構成
 
 ```
-CopyEdit
-スコッティ フラワーパック 3倍長持ち トイレット12ロール 75mダブル ×4パック
-```
+toilet-paper-price-compare/
+├── app/                      # Next.js App Router
+│   ├── admin/               # 管理画面
+│   │   ├── page.tsx        # ダッシュボード（48時間ブロック実装）
+│   │   ├── post/           # 記事編集
+│   │   ├── categories/     # カテゴリ管理
+│   │   └── scrape-status/  # スクレイピング監視
+│   ├── api/                 # APIエンドポイント
+│   │   ├── blog/           # ブログAPI
+│   │   ├── products/       # 商品API（Vercel Functions）
+│   │   └── scrape-status/  # ステータスAPI
+│   ├── blog/               # ブログページ
+│   ├── toilet-paper/       # トイレットペーパー商品一覧
+│   └── dishwashing-liquid/ # 食器用洗剤商品一覧
+├── components/              # 再利用可能コンポーネント
+│   ├── CategoryBlogSection.tsx  # カテゴリ別記事表示
+│   ├── BlogCard.tsx             # 記事カード
+│   └── MarkdownEditor.tsx      # MDXエディタ
+├── lib/                     # ユーティリティ
+│   ├── supabase.ts         # Supabaseクライアント
+│   ├── auth-utils.ts       # 認証・レート制限
+│   └── blog-utils.ts       # ブログユーティリティ
+├── python-backend/          # Pythonバックエンド
+│   ├── app/                # FastAPIアプリケーション
+│   │   ├── scraper.py      # Amazonスクレイパー
+│   │   ├── chatgpt_parser.py # OpenAI解析
+│   │   └── database.py     # DB操作
+│   └── requirements.txt    # Python依存関係
+├── .github/workflows/       # GitHub Actions
+│   └── scrape.yml          # 4時間ごとの自動スクレイピング
+└── middleware.ts           # CSRF保護・セキュリティヘッダー
 
-抽出結果：
+## 🛠 技術スタック
 
-- 長さ: 75 m
-- 総ロール: 12 × 4 = 48
-- 総メートル: 3,600 m
-- 単価: 販売価格 ÷ 48ロール
-- シングル/ダブル: ダブル
-- セール中かどうか: SavingBasisありで価格差ありならtrue
+### フロントエンド
+- **Next.js 14.2.11** - App Router, React Server Components
+- **TypeScript** - 型安全な開発
+- **Tailwind CSS** - ユーティリティファーストCSS
+- **MDXEditor** - リッチテキスト編集（日本語対応）
+- **Supabase Auth** - 認証システム
 
-------
+### バックエンド
+- **Vercel Functions** - サーバーレスAPI
+- **FastAPI** - ローカル開発用API
+- **Supabase** - PostgreSQLデータベース・ストレージ
+- **GitHub Actions** - 定期スクレイピング（4時間ごと）
 
-## 5. データベース設計（Supabase）
+### 外部サービス
+- **OpenAI API** - 商品情報の自動解析
+- **Amazon** - 商品データソース
+- **Vercel** - ホスティング・デプロイメント
 
-```
-sql
+## 📊 データベース構成
 
+### Supabaseテーブル
 
-CopyEdit
-create table products (
+#### トイレットペーパー商品
+```sql
+create table toilet_paper_products (
     id uuid primary key default gen_random_uuid(),
     asin text not null unique,
     title text not null,
     description text,
     brand text,
     image_url text,
-    price integer,                -- 販売価格（セール適用後）
-    price_regular integer,        -- 通常価格（割引前）
-    discount_percent integer,     -- 割引率
-    on_sale boolean,              -- セール中フラグ
+    price integer,
+    price_regular integer,
+    discount_percent integer,
+    on_sale boolean default false,
     review_avg numeric(2,1),
     review_count integer,
     roll_count integer,
@@ -181,67 +160,278 @@ create table products (
     price_per_roll numeric(7,2),
     price_per_m numeric(7,3),
     is_double boolean,
-    last_fetched_at timestamp default now()
+    last_fetched_at timestamp default now(),
+    updated_at timestamp default now()
 );
 ```
 
-------
-
-## 6. API設計（Next.js API Routes）
-
-### `/api/search`（GET）
-
-**クエリ**
-
-- `keyword` (string, 必須)
-- `filter` (optional: `single` / `double` / `sale`)
-
-**レスポンス例**
-
-```
-json
-
-
-CopyEdit
-[
-  {
-    "asin": "B0XXXXXX",
-    "title": "エリエール i:na 2倍巻き 50m×36ロール ダブル",
-    "price": 3980,
-    "price_regular": 4980,
-    "discount_percent": 20,
-    "on_sale": true,
-    "review_avg": 4.5,
-    "review_count": 1234,
-    "roll_count": 36,
-    "length_m": 50,
-    "total_length_m": 1800,
-    "price_per_roll": 110.56,
-    "price_per_m": 2.21,
-    "is_double": true,
-    "image_url": "https://..."
-  }
-]
+#### 食器用洗剤商品
+```sql
+create table dishwashing_liquid_products (
+    id uuid primary key default gen_random_uuid(),
+    asin text not null unique,
+    title text not null,
+    description text,
+    brand text,
+    image_url text,
+    price integer,
+    price_regular integer,
+    discount_percent integer,
+    on_sale boolean default false,
+    review_avg numeric(2,1),
+    review_count integer,
+    volume_ml integer,
+    price_per_1000ml numeric(7,2),
+    is_refill boolean default false,
+    last_fetched_at timestamp default now(),
+    updated_at timestamp default now()
+);
 ```
 
-------
+#### ブログ記事
+```sql
+create table blog_posts (
+    id uuid primary key default gen_random_uuid(),
+    title text not null,
+    slug text unique not null,
+    content text,
+    excerpt text,
+    category text,
+    tags text[],
+    status text check (status in ('draft', 'published', 'scheduled')),
+    author_id uuid references auth.users(id),
+    author_name text,
+    featured_image text,
+    meta_title text,
+    meta_description text,
+    published_at timestamp,
+    created_at timestamp default now(),
+    updated_at timestamp default now()
+);
+```
 
-## 7. フロントエンド仕様（Next.js）
+## 🔌 APIエンドポイント
 
-- `/`
-  - キーワード検索フォーム
-  - 最近検索した商品の一覧（キャッシュ）
-- `/compare?keyword=トイレットペーパー`
-  - 結果テーブル
-    - 画像 / タイトル / 価格 / 通常価格 / 割引率 / 単価 / 星評価
-    - **セール中商品は価格を強調表示**
-  - ソート：`price_per_m`、`price_per_roll`、`discount_percent`
-  - フィルタ：`is_double`、`on_sale`
+### 商品API
+```typescript
+// トイレットペーパー商品一覧
+GET /api/products?type=toilet_paper
+Query Parameters:
+  - sort: price_per_m | price_per_roll | price | review_avg
+  - order: asc | desc
+  - min_rating: number (1-5)
+  - page: number
+  - limit: number
 
-------
+// 食器用洗剤商品一覧  
+GET /api/products?type=dishwashing_liquid
+Query Parameters:
+  - sort: price_per_1000ml | price | review_avg
+  - is_refill: boolean
+```
 
-## 8. 運用・更新
+### ブログAPI
+```typescript
+// 記事一覧
+GET /api/blog/posts
+Query Parameters:
+  - category: string
+  - tag: string
+  - status: draft | published | scheduled
+  - limit: number
+  - offset: number
 
-- **価格更新**：1日1回以上、Supabaseに反映
-- **API制限対応**：初回はキャッシュ優先
-- **古い商品**：一定期間アクセスなしなら無効化
+// 個別記事
+GET /api/blog/posts/[slug]
+
+// カテゴリ一覧
+GET /api/blog/categories
+```
+
+### 管理API
+```typescript
+// スクレイピングステータス
+GET /api/scrape-status
+Response:
+  - lastUpdate: { toiletPaper, dishwashing }
+  - nextScheduledRun: string
+  - productCounts: { toiletPaper, dishwashing }
+```
+
+## 🔐 セキュリティ実装
+
+### 認証・認可
+- **Supabase Auth**: メール/パスワード認証
+- **セッション管理**: JWTトークンによる認証状態管理
+- **権限チェック**: 管理画面へのアクセス制御
+
+### ブルートフォース対策
+```typescript
+// /app/admin/page.tsx
+- ログイン試行回数の記録
+- 3回失敗: 指数関数的な遅延（2^n秒）
+- 5回失敗: 48時間アカウントロック
+- ロック解除: 48時間経過後自動解除
+```
+
+### API保護
+```typescript
+// /middleware.ts
+- CSRF保護: Origin/Refererヘッダー検証
+- セキュリティヘッダー:
+  - X-Frame-Options: DENY
+  - X-Content-Type-Options: nosniff
+  - X-XSS-Protection: 1; mode=block
+  - Referrer-Policy: strict-origin-when-cross-origin
+```
+
+### レート制限
+```typescript
+// /lib/auth-utils.ts
+- APIエンドポイント: 10リクエスト/分/IP
+- ログイン試行: 5回/15分/アカウント
+- 自動ブロック: 異常なアクセスパターン検出時
+```
+
+## 🚀 デプロイメント
+
+### 本番環境（Vercel）
+
+#### 環境変数設定
+Vercelダッシュボードで設定:
+```
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY  
+NEXT_PUBLIC_AMAZON_PARTNER_TAG
+OPENAI_API_KEY
+```
+
+#### デプロイコマンド
+```bash
+# ビルドテスト
+npm run build
+
+# デプロイ
+git add .
+git commit -m "feat: your feature"
+git push origin feature/blog
+```
+
+### GitHub Actions設定
+
+#### シークレット設定
+リポジトリSettings → Secrets:
+```
+OPENAI_API_KEY
+SUPABASE_URL
+SUPABASE_SERVICE_KEY
+```
+
+#### スケジュール実行
+`.github/workflows/scrape.yml`:
+- 実行頻度: 4時間ごと（cron: '0 */4 * * *'）
+- 手動実行: Actions → Run workflow
+
+## 📈 監視・運用
+
+### スクレイピング監視
+
+#### 管理画面での確認
+1. https://amazon-price-comparision.vercel.app/admin にログイン
+2. 「スクレイピング状況」をクリック
+3. 確認項目:
+   - 最終更新時刻（4時間以内なら「最新」表示）
+   - 商品数
+   - 次回実行予定時刻
+
+#### GitHub Actionsでの確認
+1. GitHubリポジトリ → Actionsタブ
+2. 「Scheduled Product Scraping」を選択
+3. 実行履歴から成功/失敗を確認
+4. 手動実行: "Run workflow"ボタン
+
+### エラー対応
+
+#### スクレイピング失敗時
+```bash
+# ローカルでテスト実行
+cd python-backend
+python -c "import asyncio; from app.scraper import AmazonScraper; ..."
+```
+
+#### API接続エラー
+```bash
+# Supabase接続テスト
+curl https://[your-project].supabase.co/rest/v1/toilet_paper_products?limit=1 \
+  -H "apikey: your_anon_key"
+```
+
+## 🧪 テスト・デバッグ
+
+### ビルドテスト
+```bash
+# TypeScriptチェック
+npm run type-check
+
+# ビルド
+npm run build
+
+# 本番環境シミュレーション
+npm run start
+```
+
+### よくあるエラーと対処法
+
+#### Webpack Module Error
+```bash
+# キャッシュクリア
+rm -rf .next
+npm run dev
+```
+
+#### Supabase認証エラー
+```javascript
+// 認証状態確認
+const { data: { user } } = await supabase.auth.getUser();
+console.log('Current user:', user);
+```
+
+#### スクレイピング失敗
+```python
+# デバッグモード実行
+DEBUG=true python app/scraper.py
+```
+
+## 📝 トラブルシューティング
+
+### Q: 管理画面にログインできない
+A: Supabaseダッシュボードでユーザーを確認し、必要に応じて新規作成
+
+### Q: スクレイピングが実行されない
+A: GitHub Actions → Settings → Secrets でAPI キーが正しく設定されているか確認
+
+### Q: 商品が表示されない
+A: Supabaseダッシュボードでテーブルにデータが存在するか確認
+
+### Q: ブログ画像がアップロードできない
+A: Supabase Storage → Policies で public アクセスが許可されているか確認
+
+## 🤝 コントリビューション
+
+1. Issueを作成して機能提案・バグ報告
+2. フォークしてfeatureブランチを作成
+3. 変更をコミット（conventional commits推奨）
+4. プルリクエストを作成
+
+## 📄 ライセンス
+
+MIT License - 詳細は [LICENSE](LICENSE) ファイルを参照
+
+## 📞 サポート
+
+- Issues: [GitHub Issues](https://github.com/hrism/toilet-paper-price-compare/issues)
+- Email: support@example.com
+
+---
+
+*Last Updated: 2025-08-16*

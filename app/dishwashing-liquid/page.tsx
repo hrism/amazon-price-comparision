@@ -5,6 +5,7 @@ import { getAmazonProductUrl } from '@/lib/amazon-link';
 import CategoryGrid from '@/components/CategoryGrid';
 import ProductCard from '@/components/ProductCard';
 import ReviewFilter from '@/components/ReviewFilter';
+import CategoryBlogSection from '@/components/CategoryBlogSection';
 import { categories } from '@/lib/categories';
 import { productLabels, dishwashingLiquidLabels } from '@/lib/labels';
 
@@ -36,6 +37,7 @@ export default function DishwashingLiquid() {
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [minReviewScore, setMinReviewScore] = useState<number>(0);
   const [isLocalhost, setIsLocalhost] = useState(false);
+  const [refetchingProducts, setRefetchingProducts] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     // localhost環境かチェック
@@ -56,21 +58,36 @@ export default function DishwashingLiquid() {
     setError(null);
     
     try {
+      // forceRefreshの場合、先にスクレイピングを実行
+      if (forceRefresh && isLocalhost) {
+        console.log('Starting scraping...');
+        const scrapeResponse = await fetch('/api/scrape', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'dishwashing_liquid' })
+        });
+        
+        if (!scrapeResponse.ok) {
+          console.error('Scraping failed:', await scrapeResponse.text());
+        } else {
+          console.log('Scraping completed');
+        }
+      }
+      
       const params = new URLSearchParams({ keyword: '食器用洗剤' });
       if (filterType !== 'all') {
         params.append('filter', filterType);
       }
-      if (forceRefresh) {
-        params.append('force', 'true');
-      }
       
       // 統一APIエンドポイントを使用
       params.append('type', 'dishwashing_liquid');
-      const apiUrl = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-        ? 'http://localhost:8000/api/dishwashing/search'
-        : '/api/products';
+      const apiUrl = '/api/products';
       const response = await fetch(`${apiUrl}?${params}`);
-      if (!response.ok) throw new Error('Failed to fetch products');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error:', errorText);
+        throw new Error(`Failed to fetch: ${response.status}`);
+      }
       
       const data = await response.json();
       setProducts(data);
@@ -78,6 +95,46 @@ export default function DishwashingLiquid() {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const refetchProduct = async (asin: string) => {
+    if (refetchingProducts.has(asin)) return; // 既に処理中の場合はスキップ
+    
+    setRefetchingProducts(prev => {
+      const newSet = new Set(prev);
+      newSet.add(asin);
+      return newSet;
+    });
+    
+    try {
+      console.log(`Refetching product: ${asin}`);
+      
+      // Next.jsのAPIルートを使用
+      const apiUrl = '/api/refetch-product';
+      const response = await fetch(`${apiUrl}/${asin}`, {
+        method: 'POST',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to refetch product: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      console.log(`Refetch completed for ${asin}:`, result);
+      
+      // 商品リストを再取得してUIを更新
+      await fetchProducts();
+      
+    } catch (err) {
+      console.error(`Error refetching product ${asin}:`, err);
+      alert(`価格の再取得に失敗しました: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setRefetchingProducts(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(asin);
+        return newSet;
+      });
     }
   };
 
@@ -245,6 +302,8 @@ export default function DishwashingLiquid() {
                   index={index}
                   sortBy={sortBy}
                   isLocalhost={isLocalhost}
+                  refetchingProducts={refetchingProducts}
+                  onRefetch={refetchProduct}
                   renderBadges={(product) => (
                     <>
                       {product.is_refill ? (
@@ -281,6 +340,15 @@ export default function DishwashingLiquid() {
                 />
               ))}
             </div>
+
+            {/* セクション区切り */}
+            <div className="my-12 border-t border-[#E3E6E6]"></div>
+
+            {/* ブログ記事セクション */}
+            <CategoryBlogSection 
+              categorySlug="dishwashing-liquid" 
+              categoryName="食器用洗剤"
+            />
 
             {/* 他カテゴリーへのリンク */}
             <CategoryGrid 
