@@ -18,6 +18,8 @@ class AmazonScraper:
             options.add_argument('--no-sandbox')
             options.add_argument('--disable-dev-shm-usage')
             options.add_argument('--disable-blink-features=AutomationControlled')
+            # より一般的なUser-Agentを設定
+            options.add_argument('--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
             options.add_experimental_option("prefs", {
                 "intl.accept_languages": "ja,ja-JP"
             })
@@ -124,14 +126,20 @@ class AmazonScraper:
             
             # セール判定
             if product.get('price_regular') and product.get('price'):
-                # 正常な価格の場合のみセール判定を行う
-                if product['price_regular'] > 100 and product['price_regular'] > product['price']:
+                # 定価が現在価格より高く、かつ妥当な範囲内の場合のみセール判定
+                price_ratio = product['price_regular'] / product['price']
+                if (product['price_regular'] > product['price'] and 
+                    price_ratio > 1.05 and  # 5%以上の割引
+                    price_ratio < 10):  # 10倍以上の差は異常値として除外
                     product['on_sale'] = True
                     product['discount_percent'] = int(
                         ((product['price_regular'] - product['price']) / product['price_regular']) * 100
                     )
                 else:
                     product['on_sale'] = False
+                    # 異常な定価は削除
+                    if price_ratio >= 10 or price_ratio < 0.1:
+                        del product['price_regular']
             else:
                 product['on_sale'] = False
             

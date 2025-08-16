@@ -9,9 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@mdxeditor/editor": "^3.40.1",
     "@supabase/supabase-js": "^2.53.0",
+    "@tailwindcss/line-clamp": "^0.4.4",
     "@types/puppeteer": "^5.4.7",
     "axios": "^1.11.0",
+    "cheerio": "^1.1.2",
     "crypto-js": "^4.2.0",
     "dotenv": "^17.2.1",
     "kuromoji": "^0.1.2",
@@ -20,8 +23,16 @@
     "puppeteer": "^24.15.0",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "quill": "^2.0.3",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "react-quill": "^2.0.0",
+    "reading-time": "^1.5.0",
+    "remark": "^15.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-html": "^16.0.1",
+    "turndown": "^7.2.1",
+    "turndown-plugin-gfm": "^1.0.2"
   },
   "devDependencies": {
     "@types/crypto-js": "^4.2.2",

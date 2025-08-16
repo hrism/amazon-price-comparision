@@ -1,5 +1,3 @@
-'use client';
-
 import Link from 'next/link';
 import { categories } from '@/lib/categories';
 
@@ -26,6 +24,8 @@ export default function Home() {
             <span className="hover:text-[#FF9900] cursor-pointer">📊 単価で比較</span>
             <span className="hover:text-[#FF9900] cursor-pointer">⭐ レビュー評価順</span>
             <span className="hover:text-[#FF9900] cursor-pointer">🔥 セール商品</span>
+            <Link href="/blog" className="hover:text-[#FF9900] cursor-pointer">📝 ブログ</Link>
+            <Link href="/admin" className="hover:text-[#FF9900] cursor-pointer">⚙️ 管理</Link>
           </div>
         </div>
       </div>
