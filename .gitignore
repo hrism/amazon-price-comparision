@@ -57,6 +57,7 @@ server.log
 # env files  
 .env
 .env.txt
+python-backend/.env
 
 # test files
 lib/test-*.ts
