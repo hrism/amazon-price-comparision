@@ -32,19 +32,8 @@ export default function CategoryBlogSection({ categorySlug, categoryName }: Cate
 
   const fetchBlogPosts = async () => {
     try {
-      // カテゴリIDを取得
-      const categoryResponse = await supabase
-        .from('blog_categories')
-        .select('id')
-        .eq('slug', categorySlug)
-        .single();
-
-      if (!categoryResponse.data) {
-        setLoading(false);
-        return;
-      }
-
-      const categoryId = categoryResponse.data.id;
+      // カテゴリIDをスラッグから直接マッピング
+      const categoryId = categorySlug === 'toilet-paper' ? 1 : 2;
 
       // 該当カテゴリのブログ記事を取得
       const { data, error } = await supabase
