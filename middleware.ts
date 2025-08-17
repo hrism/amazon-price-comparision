@@ -29,6 +29,8 @@ export function middleware(request: NextRequest) {
     const allowedOrigins = [
       process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : '',
       'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:3002',
       'https://amazon-price-comparision.vercel.app'
     ].filter(Boolean);
 

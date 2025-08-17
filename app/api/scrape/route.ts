@@ -1,33 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { spawn } from 'child_process';
 import { validateAuth, rateLimit, getClientIP, validateInput } from '@/lib/auth-utils';
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    // 認証チェック
-    const authResult = await validateAuth(request);
-    if (!authResult.valid) {
+    // 本番環境でのみ認証チェック
+    if (process.env.NODE_ENV === 'production') {
+      const authResult = await validateAuth(request);
+      if (!authResult.valid) {
+        return NextResponse.json(
+          { error: 'Unauthorized', details: authResult.error },
+          { status: 401 }
+        );
+      }
+      
+      // 本番環境では実行不可
       return NextResponse.json(
-        { error: 'Unauthorized', details: authResult.error },
-        { status: 401 }
+        { error: 'Scraping is only available in development mode' },
+        { status: 403 }
       );
     }
 
-    // Rate limiting
+    // Rate limiting（ローカル環境でも有効）
     const clientIP = getClientIP(request);
     const rateLimitResult = rateLimit(`scrape:${clientIP}`, 5, 300000); // 5回/5分
     if (!rateLimitResult.allowed) {
       return NextResponse.json(
         { error: 'Rate limit exceeded', message: 'Too many requests. Please try again later.' },
         { status: 429 }
-      );
-    }
-
-    // ローカル環境でのみ実行可能
-    if (process.env.NODE_ENV === 'production') {
-      return NextResponse.json(
-        { error: 'Scraping is only available in development mode' },
-        { status: 403 }
       );
     }
 
@@ -46,53 +45,51 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     
     const { type } = requestBody;
     
-    return new Promise<NextResponse>((resolve) => {
-      // Pythonスクリプトを実行（タイムアウトを避けるためspawnを使用）
-      const pythonProcess = spawn('python', ['scrape_and_save.py'], {
-        cwd: './python-backend'
+    // PythonバックエンドのAPIを呼び出す
+    try {
+      const apiUrl = type === 'dishwashing_liquid' 
+        ? 'http://localhost:8000/api/dishwashing/search'
+        : 'http://localhost:8000/api/search';
+      
+      const searchParams = new URLSearchParams({
+        keyword: type === 'dishwashing_liquid' ? '食器用洗剤' : 'トイレットペーパー',
+        force: 'true'
       });
       
-      let output = '';
-      let errorOutput = '';
-      
-      pythonProcess.stdout.on('data', (data) => {
-        output += data.toString();
-        console.log('Python output:', data.toString());
-      });
-      
-      pythonProcess.stderr.on('data', (data) => {
-        errorOutput += data.toString();
-        console.error('Python error:', data.toString());
-      });
-      
-      pythonProcess.on('close', (code) => {
-        if (code === 0) {
-          resolve(NextResponse.json({
-            success: true,
-            message: 'Scraping started successfully',
-            output: output.substring(0, 1000) // 最初の1000文字のみ返す
-          }));
-        } else {
-          resolve(NextResponse.json({
-            success: false,
-            message: 'Scraping process failed',
-            error: errorOutput
-          }, { status: 500 }));
+      const response = await fetch(`${apiUrl}?${searchParams}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
         }
       });
       
-      // プロセスを切り離して実行（レスポンスを待たない）
-      pythonProcess.unref();
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Scraping API error:', errorText);
+        return NextResponse.json({
+          success: false,
+          message: 'Scraping failed',
+          error: errorText
+        }, { status: response.status });
+      }
       
-      // 即座にレスポンスを返す
-      setTimeout(() => {
-        resolve(NextResponse.json({
-          success: true,
-          message: 'スクレイピングプロセスをバックグラウンドで開始しました',
-          info: '処理完了まで1-2分かかります。完了後、ページをリロードしてください。'
-        }));
-      }, 100);
-    });
+      const data = await response.json();
+      
+      return NextResponse.json({
+        success: true,
+        message: 'スクレイピングが完了しました',
+        productCount: data.length,
+        info: `${data.length}件の商品データを更新しました`
+      });
+      
+    } catch (error) {
+      console.error('Error calling Python backend:', error);
+      return NextResponse.json({
+        success: false,
+        message: 'Scraping failed',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }, { status: 500 });
+    }
     
   } catch (error) {
     console.error('Scraping error:', error);

@@ -87,7 +87,12 @@ export default function DishwashingLiquid() {
         if (!scrapeResponse.ok) {
           console.error('Scraping failed:', await scrapeResponse.text());
         } else {
-          console.log('Scraping completed');
+          const result = await scrapeResponse.json();
+          console.log('Scraping completed:', result);
+          // スクレイピング完了後、少し待ってからデータを取得
+          if (result.success) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
         }
       }
 

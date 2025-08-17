@@ -164,6 +164,16 @@ jobs:
                         product.get('description', '')
                     )
                     
+                    # 食洗機用製品はスキップ
+                    if info.get('is_dishwasher', False):
+                        print(f'Skipping dishwasher product: {product.get(\"title\", \"unknown\")[:50]}')
+                        continue
+                    
+                    # volume_mlがnullまたは0の場合もスキップ
+                    if not info.get('volume_ml'):
+                        print(f'Skipping product with no volume: {product.get(\"title\", \"unknown\")[:50]}')
+                        continue
+                    
                     # 単価計算
                     price_per_1000ml = None
                     if product.get('price') and info.get('volume_ml'):

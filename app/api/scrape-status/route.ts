@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
     const { data: toiletPaper, error: toiletError } = await supabase
       .from('toilet_paper_products')
       .select('last_fetched_at, updated_at')
+      .not('last_fetched_at', 'is', null)
       .order('last_fetched_at', { ascending: false })
       .limit(1)
       .single();
@@ -20,6 +21,7 @@ export async function GET(request: NextRequest) {
     const { data: dishwashing, error: dishError } = await supabase
       .from('dishwashing_liquid_products')
       .select('last_fetched_at, updated_at')
+      .not('last_fetched_at', 'is', null)
       .order('last_fetched_at', { ascending: false })
       .limit(1)
       .single();

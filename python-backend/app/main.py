@@ -1,8 +1,9 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 import os
+import secrets
 from dotenv import load_dotenv
 
 from .scraper import AmazonScraper
@@ -56,12 +57,29 @@ async def root():
 async def search_products(
     keyword: str = "トイレットペーパー",
     filter: Optional[str] = None,
-    force: bool = False
+    force: bool = False,
+    scrape_token: Optional[str] = None
 ):
     import time
     start_time = time.time()
     
     try:
+        # force=trueの場合はトークン検証（ローカル環境はスキップ）
+        if force:
+            # GitHub Actions環境またはトークンが設定されている場合のみチェック
+            if os.getenv('GITHUB_ACTIONS') == 'true' or os.getenv('SCRAPE_AUTH_TOKEN'):
+                expected_token = os.getenv('SCRAPE_AUTH_TOKEN')
+                if not expected_token:
+                    # トークンが設定されていない場合は、ランダムな文字列を生成
+                    expected_token = secrets.token_urlsafe(32)
+                    print(f"Warning: SCRAPE_AUTH_TOKEN not set. Generated token: {expected_token}")
+                
+                if scrape_token != expected_token:
+                    raise HTTPException(status_code=403, detail="Invalid scrape token")
+            else:
+                # ローカル開発環境ではトークンチェックをスキップ
+                print("Local environment detected - skipping token validation")
+        
         # 強制更新でない限り、DBキャッシュを優先的に使用
         if not force:
             # DBから既存の商品を取得（4時間の制限なし）
@@ -418,13 +436,30 @@ async def refetch_single_product(asin: str):
 async def search_dishwashing_products(
     keyword: str = "食器用洗剤",
     filter: Optional[str] = None,
-    force: bool = False
+    force: bool = False,
+    scrape_token: Optional[str] = None
 ):
     """食器用洗剤の検索エンドポイント"""
     import time
     start_time = time.time()
     
     try:
+        # force=trueの場合はトークン検証（ローカル環境はスキップ）
+        if force:
+            # GitHub Actions環境またはトークンが設定されている場合のみチェック
+            if os.getenv('GITHUB_ACTIONS') == 'true' or os.getenv('SCRAPE_AUTH_TOKEN'):
+                expected_token = os.getenv('SCRAPE_AUTH_TOKEN')
+                if not expected_token:
+                    # トークンが設定されていない場合は、ランダムな文字列を生成
+                    expected_token = secrets.token_urlsafe(32)
+                    print(f"Warning: SCRAPE_AUTH_TOKEN not set. Generated token: {expected_token}")
+                
+                if scrape_token != expected_token:
+                    raise HTTPException(status_code=403, detail="Invalid scrape token")
+            else:
+                # ローカル開発環境ではトークンチェックをスキップ
+                print("Local environment detected - skipping token validation")
+        
         # 強制更新でない限り、DBキャッシュを優先的に使用
         if not force:
             cached_products = await db.get_all_dishwashing_products(filter)
@@ -450,6 +485,16 @@ async def search_dishwashing_products(
                 product['title'], 
                 product.get('description', '')
             )
+            
+            # 食洗機用製品はスキップ
+            if extracted_info.get('is_dishwasher', False):
+                print(f"Skipping dishwasher product: {product.get('title', 'unknown')[:50]}")
+                continue
+            
+            # volume_mlがnullまたは0の場合もスキップ
+            if not extracted_info.get('volume_ml'):
+                print(f"Skipping product with no volume: {product.get('title', 'unknown')[:50]}")
+                continue
             
             # 単価計算
             price_per_1000ml = None
