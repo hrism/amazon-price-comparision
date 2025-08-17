@@ -23,6 +23,7 @@ export default function Home() {
   const [minReviewScore, setMinReviewScore] = useState<number>(0);
   const [isLocalhost, setIsLocalhost] = useState(false);
   const [refetchingProducts, setRefetchingProducts] = useState<Set<string>>(new Set());
+  const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
 
   useEffect(() => {
     // localhost環境かチェック
@@ -36,7 +37,22 @@ export default function Home() {
 
   useEffect(() => {
     fetchProducts();
+    fetchLastUpdateTime();
   }, [filterType]);
+
+  const fetchLastUpdateTime = async () => {
+    try {
+      const response = await fetch('/api/scrape-status');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.lastUpdate?.toiletPaper?.timestamp) {
+          setLastUpdateTime(data.lastUpdate.toiletPaper.timestamp);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch last update time:', error);
+    }
+  };
 
   const fetchProducts = async (forceRefresh = false) => {
     setLoading(true);
@@ -205,6 +221,17 @@ export default function Home() {
                     {filteredByReview.length}{productLabels.status.productsCount}
                     {minReviewScore > 0 && ` (★${minReviewScore.toFixed(1)}以上)`}
                   </span>
+                  {lastUpdateTime && (
+                    <span className="text-[11px] text-[#565959]">
+                      最終更新: {new Date(lastUpdateTime).toLocaleString('ja-JP', {
+                        year: 'numeric',
+                        month: 'numeric',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  )}
                   {isLocalhost && (
                     <button
                       onClick={() => fetchProducts(true)}
