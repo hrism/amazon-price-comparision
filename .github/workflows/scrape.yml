@@ -43,150 +43,150 @@ jobs:
       working-directory: ./python-backend
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
       run: |
         python -c "
-import asyncio
-from app.scraper import AmazonScraper
-from app.chatgpt_parser import ChatGPTParser
-from app.database import Database
-from app.main import Product
-
-async def scrape_and_save():
-    scraper = AmazonScraper()
-    parser = ChatGPTParser()
-    db = Database()
-    
-    try:
-        # トイレットペーパーをスクレイピング
-        print('Scraping toilet paper products...')
-        scraped = await scraper.search_products('トイレットペーパー')
-        print(f'Found {len(scraped)} products')
+        import asyncio
+        from app.scraper import AmazonScraper
+        from app.chatgpt_parser import ChatGPTParser
+        from app.database import Database
+        from app.main import Product
         
-        processed = []
-        for product in scraped:
-            if not product.get('title'):
-                continue
+        async def scrape_and_save():
+            scraper = AmazonScraper()
+            parser = ChatGPTParser()
+            db = Database()
             
-            # ChatGPT解析
-            info = await parser.extract_info(
-                product['title'], 
-                product.get('description', '')
-            )
-            
-            # 単価計算
-            price_per_roll = None
-            price_per_m = None
-            
-            if product.get('price') and info['roll_count']:
-                price_per_roll = product['price'] / info['roll_count']
-            
-            if product.get('price') and info['total_length_m']:
-                price_per_m = product['price'] / info['total_length_m']
-            
-            # Product作成
-            p = Product(
-                asin=product['asin'],
-                title=product.get('title', ''),
-                description=product.get('description'),
-                brand=product.get('brand'),
-                image_url=product.get('image_url'),
-                price=product.get('price'),
-                price_regular=product.get('price_regular'),
-                discount_percent=product.get('discount_percent'),
-                on_sale=product.get('on_sale', False),
-                review_avg=product.get('review_avg'),
-                review_count=product.get('review_count'),
-                roll_count=int(info['roll_count']) if info['roll_count'] else None,
-                length_m=info['length_m'],
-                total_length_m=info['total_length_m'],
-                price_per_roll=price_per_roll,
-                price_per_m=price_per_m,
-                is_double=info['is_double']
-            )
-            processed.append(p)
+            try:
+                # トイレットペーパーをスクレイピング
+                print('Scraping toilet paper products...')
+                scraped = await scraper.search_products('トイレットペーパー')
+                print(f'Found {len(scraped)} products')
+                
+                processed = []
+                for product in scraped:
+                    if not product.get('title'):
+                        continue
+                    
+                    # ChatGPT解析
+                    info = await parser.extract_info(
+                        product['title'], 
+                        product.get('description', '')
+                    )
+                    
+                    # 単価計算
+                    price_per_roll = None
+                    price_per_m = None
+                    
+                    if product.get('price') and info['roll_count']:
+                        price_per_roll = product['price'] / info['roll_count']
+                    
+                    if product.get('price') and info['total_length_m']:
+                        price_per_m = product['price'] / info['total_length_m']
+                    
+                    # Product作成
+                    p = Product(
+                        asin=product['asin'],
+                        title=product.get('title', ''),
+                        description=product.get('description'),
+                        brand=product.get('brand'),
+                        image_url=product.get('image_url'),
+                        price=product.get('price'),
+                        price_regular=product.get('price_regular'),
+                        discount_percent=product.get('discount_percent'),
+                        on_sale=product.get('on_sale', False),
+                        review_avg=product.get('review_avg'),
+                        review_count=product.get('review_count'),
+                        roll_count=int(info['roll_count']) if info['roll_count'] else None,
+                        length_m=info['length_m'],
+                        total_length_m=info['total_length_m'],
+                        price_per_roll=price_per_roll,
+                        price_per_m=price_per_m,
+                        is_double=info['is_double']
+                    )
+                    processed.append(p)
+                
+                # データベースに保存
+                if processed:
+                    await db.upsert_products(processed)
+                    print(f'Saved {len(processed)} products to database')
+                
+            finally:
+                await scraper.close()
+                await parser.close()
         
-        # データベースに保存
-        if processed:
-            await db.upsert_products(processed)
-            print(f'Saved {len(processed)} products to database')
-        
-    finally:
-        await scraper.close()
-        await parser.close()
-
-asyncio.run(scrape_and_save())
+        asyncio.run(scrape_and_save())
         "
 
     - name: Run dishwashing liquid scraping
       working-directory: ./python-backend
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
       run: |
         python -c "
-import asyncio
-from app.scraper import AmazonScraper
-from app.chatgpt_parser import ChatGPTParser
-from app.database import Database
-
-async def scrape_dishwashing():
-    scraper = AmazonScraper()
-    parser = ChatGPTParser()
-    db = Database()
-    
-    try:
-        # 食器用洗剤をスクレイピング
-        print('Scraping dishwashing liquid products...')
-        scraped = await scraper.search_products('食器用洗剤')
-        print(f'Found {len(scraped)} products')
+        import asyncio
+        from app.scraper import AmazonScraper
+        from app.chatgpt_parser import ChatGPTParser
+        from app.database import Database
         
-        processed = []
-        for product in scraped:
-            if not product.get('title'):
-                continue
+        async def scrape_dishwashing():
+            scraper = AmazonScraper()
+            parser = ChatGPTParser()
+            db = Database()
             
-            # ChatGPT解析
-            info = await parser.extract_dishwashing_info(
-                product['title'], 
-                product.get('description', '')
-            )
-            
-            # 単価計算
-            price_per_1000ml = None
-            if product.get('price') and info.get('volume_ml'):
-                price_per_1000ml = (product['price'] / info['volume_ml']) * 1000
-            
-            processed_product = {
-                'asin': product['asin'],
-                'title': product.get('title', ''),
-                'description': product.get('description'),
-                'brand': product.get('brand'),
-                'image_url': product.get('image_url'),
-                'price': product.get('price'),
-                'price_regular': product.get('price_regular') if product.get('price_regular') and product.get('price_regular') > 0 else None,
-                'discount_percent': product.get('discount_percent'),
-                'on_sale': product.get('on_sale', False),
-                'review_avg': product.get('review_avg'),
-                'review_count': product.get('review_count'),
-                'volume_ml': info.get('volume_ml'),
-                'price_per_1000ml': price_per_1000ml,
-                'is_refill': info.get('is_refill', False)
-            }
-            processed.append(processed_product)
+            try:
+                # 食器用洗剤をスクレイピング
+                print('Scraping dishwashing liquid products...')
+                scraped = await scraper.search_products('食器用洗剤')
+                print(f'Found {len(scraped)} products')
+                
+                processed = []
+                for product in scraped:
+                    if not product.get('title'):
+                        continue
+                    
+                    # ChatGPT解析
+                    info = await parser.extract_dishwashing_info(
+                        product['title'], 
+                        product.get('description', '')
+                    )
+                    
+                    # 単価計算
+                    price_per_1000ml = None
+                    if product.get('price') and info.get('volume_ml'):
+                        price_per_1000ml = (product['price'] / info['volume_ml']) * 1000
+                    
+                    processed_product = {
+                        'asin': product['asin'],
+                        'title': product.get('title', ''),
+                        'description': product.get('description'),
+                        'brand': product.get('brand'),
+                        'image_url': product.get('image_url'),
+                        'price': product.get('price'),
+                        'price_regular': product.get('price_regular') if product.get('price_regular') and product.get('price_regular') > 0 else None,
+                        'discount_percent': product.get('discount_percent'),
+                        'on_sale': product.get('on_sale', False),
+                        'review_avg': product.get('review_avg'),
+                        'review_count': product.get('review_count'),
+                        'volume_ml': info.get('volume_ml'),
+                        'price_per_1000ml': price_per_1000ml,
+                        'is_refill': info.get('is_refill', False)
+                    }
+                    processed.append(processed_product)
+                
+                # データベースに保存
+                if processed:
+                    await db.save_dishwashing_products(processed)
+                    print(f'Saved {len(processed)} dishwashing products to database')
+                
+            finally:
+                await scraper.close()
+                await parser.close()
         
-        # データベースに保存
-        if processed:
-            await db.save_dishwashing_products(processed)
-            print(f'Saved {len(processed)} dishwashing products to database')
-        
-    finally:
-        await scraper.close()
-        await parser.close()
-
-asyncio.run(scrape_dishwashing())
+        asyncio.run(scrape_dishwashing())
         "
 
     - name: Summary
