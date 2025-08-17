@@ -224,6 +224,7 @@ export default function Home() {
                   {lastUpdateTime && (
                     <span className="text-[11px] text-[#565959]">
                       最終更新: {new Date(lastUpdateTime).toLocaleString('ja-JP', {
+                        timeZone: 'Asia/Tokyo',
                         year: 'numeric',
                         month: 'numeric',
                         day: 'numeric',

@@ -43,9 +43,11 @@ class AmazonScraper:
         self._init_driver()
         
         url = f"https://www.amazon.co.jp/s?k={keyword}&language=ja_JP"
-        print(f"Navigating to: {url}")
+        print(f"[DEBUG] Navigating to: {url}")
         
         self.driver.get(url)
+        print(f"[DEBUG] Page title: {self.driver.title}")
+        print(f"[DEBUG] Current URL: {self.driver.current_url}")
         time.sleep(3)  # ページ読み込み待機
         
         # HTMLを解析
@@ -190,140 +192,172 @@ class AmazonScraper:
         self._init_driver()
         
         url = f"https://www.amazon.co.jp/dp/{asin}?language=ja_JP"
-        print(f"Getting detail for ASIN {asin}")
+        print(f"[DEBUG] Getting detail for ASIN {asin}")
         
-        self.driver.get(url)
-        time.sleep(2)  # ページ読み込み待機
-        
-        soup = BeautifulSoup(self.driver.page_source, 'html.parser')
-        
-        # 商品の基本情報を取得
-        detail_info = {}
-        
-        # タイトル
-        title_elem = (
-            soup.select_one('#productTitle') or 
-            soup.select_one('.product-title') or
-            soup.select_one('h1.a-size-large')
-        )
-        if title_elem:
-            detail_info['title'] = title_elem.text.strip()
-        
-        # 価格
-        price_elem = (
-            soup.select_one('.a-price .a-offscreen') or 
-            soup.select_one('.a-price-whole') or
-            soup.select_one('#corePrice_feature_div .a-price .a-offscreen')
-        )
-        if price_elem:
-            price_text = price_elem.text.replace(',', '').replace('￥', '').replace('¥', '').strip()
-            try:
-                detail_info['price'] = int(float(price_text))
-            except:
-                pass
-        
-        # 定価
-        regular_price_elem = soup.select_one('.a-text-price .a-offscreen')
-        if regular_price_elem:
-            regular_text = regular_price_elem.text.replace(',', '').replace('￥', '').replace('¥', '').strip()
-            try:
-                detail_info['price_regular'] = int(float(regular_text))
-            except:
-                pass
-        
-        # セール判定
-        if detail_info.get('price_regular') and detail_info.get('price'):
-            if detail_info['price_regular'] > detail_info['price']:
-                detail_info['on_sale'] = True
-                detail_info['discount_percent'] = int(
-                    ((detail_info['price_regular'] - detail_info['price']) / detail_info['price_regular']) * 100
-                )
-            else:
-                detail_info['on_sale'] = False
-        else:
-            detail_info['on_sale'] = False
-        
-        # 画像
-        img_elem = (
-            soup.select_one('#landingImage') or 
-            soup.select_one('.a-dynamic-image') or
-            soup.select_one('#imgBlkFront')
-        )
-        if img_elem:
-            detail_info['image_url'] = img_elem.get('src')
-        
-        # レビュー
-        rating_elem = soup.select_one('.a-icon-alt')
-        if rating_elem and '5つ星のうち' in rating_elem.text:
-            try:
-                detail_info['review_avg'] = float(rating_elem.text.split('5つ星のうち')[1].strip())
-            except:
-                pass
-        
-        # レビュー件数
-        review_count_elem = soup.select_one('#acrCustomerReviewText')
-        if review_count_elem:
-            count_text = review_count_elem.text.replace(',', '').strip()
-            import re
-            match = re.search(r'(\d+(?:,\d+)*)', count_text)
-            if match:
+        try:
+            self.driver.get(url)
+            print(f"[DEBUG] Detail page title: {self.driver.title}")
+            print(f"[DEBUG] Detail page URL: {self.driver.current_url}")
+            time.sleep(2)  # ページ読み込み待機
+            
+            # スクリーンショットを保存（GitHub Actions環境でのみ）
+            if os.environ.get('GITHUB_ACTIONS'):
+                self.driver.save_screenshot(f'/tmp/amazon_detail_{asin}.png')
+                print(f"[DEBUG] Screenshot saved to /tmp/amazon_detail_{asin}.png")
+            
+            page_source = self.driver.page_source
+            print(f"[DEBUG] Detail page source length: {len(page_source)}")
+            
+            # CAPTCHAやエラーページのチェック
+            if "認証が必要" in page_source or "captcha" in page_source.lower():
+                print(f"[ERROR] CAPTCHA detected on detail page for {asin}")
+                if os.environ.get('GITHUB_ACTIONS'):
+                    print("[DEBUG] Detail page HTML (first 1000 chars):")
+                    print(page_source[:1000])
+                raise Exception(f"CAPTCHA detected on detail page for {asin}")
+            
+            if "申し訳ございません" in page_source:
+                print(f"[ERROR] Amazon error page detected for {asin}")
+                if os.environ.get('GITHUB_ACTIONS'):
+                    print("[DEBUG] Detail page HTML (first 1000 chars):")
+                    print(page_source[:1000])
+                raise Exception(f"Amazon error page for {asin}")
+            
+            soup = BeautifulSoup(page_source, 'html.parser')
+            
+            # 商品の基本情報を取得
+            detail_info = {}
+            
+            # タイトル
+            title_elem = (
+                soup.select_one('#productTitle') or 
+                soup.select_one('.product-title') or
+                soup.select_one('h1.a-size-large')
+            )
+            if title_elem:
+                detail_info['title'] = title_elem.text.strip()
+            
+                # 価格
+            price_elem = (
+                soup.select_one('.a-price .a-offscreen') or 
+                soup.select_one('.a-price-whole') or
+                soup.select_one('#corePrice_feature_div .a-price .a-offscreen')
+            )
+            if price_elem:
+                price_text = price_elem.text.replace(',', '').replace('￥', '').replace('¥', '').strip()
                 try:
-                    detail_info['review_count'] = int(match.group(1).replace(',', ''))
+                    detail_info['price'] = int(float(price_text))
                 except:
                     pass
-        
-        # ブランド
-        brand_elem = soup.select_one('#bylineInfo')
-        if brand_elem:
-            detail_info['brand'] = brand_elem.text.strip()
-        
-        # productDescriptionセクション（商品紹介）
-        product_description = soup.select_one('#productDescription')
-        if product_description:
-            description_text = product_description.text.strip()
-            detail_info['description'] = description_text
-        
-        # aplusセクション（商品の説明）- カークランド商品などで使用
-        aplus_section = soup.select_one('#aplus')
-        if aplus_section:
-            # テキストコンテンツを抽出（スクリプトやスタイルタグを除外）
-            for script in aplus_section.find_all(['script', 'style']):
-                script.decompose()
-            aplus_text = aplus_section.text.strip()
-            if aplus_text:
-                # 既存のdescriptionに追加または新規作成
-                if 'description' in detail_info:
-                    detail_info['description'] += '\n\n' + aplus_text
+            
+                # 定価
+            regular_price_elem = soup.select_one('.a-text-price .a-offscreen')
+            if regular_price_elem:
+                regular_text = regular_price_elem.text.replace(',', '').replace('￥', '').replace('¥', '').strip()
+                try:
+                    detail_info['price_regular'] = int(float(regular_text))
+                except:
+                    pass
+            
+                # セール判定
+            if detail_info.get('price_regular') and detail_info.get('price'):
+                if detail_info['price_regular'] > detail_info['price']:
+                    detail_info['on_sale'] = True
+                    detail_info['discount_percent'] = int(
+                        ((detail_info['price_regular'] - detail_info['price']) / detail_info['price_regular']) * 100
+                    )
                 else:
-                    detail_info['description'] = aplus_text
-        
-        # feature-bulletsセクション（商品の特徴）
-        feature_bullets = soup.select('#feature-bullets .a-list-item')
-        features = []
-        for bullet in feature_bullets:
-            text = bullet.text.strip()
-            if text and not text.startswith('›'):
-                features.append(text)
-        
-        if features:
-            detail_info['features'] = ' '.join(features)
-        
-        # 商品の詳細情報テーブル
-        detail_table = soup.select('.prodDetTable tr, #productDetails_detailBullets_sections1 tr')
-        for row in detail_table:
-            label = row.select_one('th, .prodDetSectionEntry')
-            value = row.select_one('td, .prodDetAttrValue')
-            if label and value:
-                label_text = label.text.strip()
-                value_text = value.text.strip()
-                if '寸法' in label_text or 'サイズ' in label_text:
-                    detail_info['dimensions'] = value_text
-        
-        print(f"Detail info for {asin}: {list(detail_info.keys())}")
-        if 'description' in detail_info:
-            print(f"Description preview: {detail_info['description'][:200]}...")
-        
-        return detail_info
+                    detail_info['on_sale'] = False
+            else:
+                detail_info['on_sale'] = False
+            
+                # 画像
+            img_elem = (
+                soup.select_one('#landingImage') or 
+                soup.select_one('.a-dynamic-image') or
+                soup.select_one('#imgBlkFront')
+            )
+            if img_elem:
+                detail_info['image_url'] = img_elem.get('src')
+            
+                # レビュー
+            rating_elem = soup.select_one('.a-icon-alt')
+            if rating_elem and '5つ星のうち' in rating_elem.text:
+                try:
+                    detail_info['review_avg'] = float(rating_elem.text.split('5つ星のうち')[1].strip())
+                except:
+                    pass
+            
+                # レビュー件数
+            review_count_elem = soup.select_one('#acrCustomerReviewText')
+            if review_count_elem:
+                count_text = review_count_elem.text.replace(',', '').strip()
+                import re
+                match = re.search(r'(\d+(?:,\d+)*)', count_text)
+                if match:
+                    try:
+                        detail_info['review_count'] = int(match.group(1).replace(',', ''))
+                    except:
+                        pass
+            
+                # ブランド
+            brand_elem = soup.select_one('#bylineInfo')
+            if brand_elem:
+                detail_info['brand'] = brand_elem.text.strip()
+            
+                # productDescriptionセクション（商品紹介）
+            product_description = soup.select_one('#productDescription')
+            if product_description:
+                description_text = product_description.text.strip()
+                detail_info['description'] = description_text
+            
+                # aplusセクション（商品の説明）- カークランド商品などで使用
+            aplus_section = soup.select_one('#aplus')
+            if aplus_section:
+                # テキストコンテンツを抽出（スクリプトやスタイルタグを除外）
+                for script in aplus_section.find_all(['script', 'style']):
+                    script.decompose()
+                aplus_text = aplus_section.text.strip()
+                if aplus_text:
+                    # 既存のdescriptionに追加または新規作成
+                    if 'description' in detail_info:
+                        detail_info['description'] += '\n\n' + aplus_text
+                    else:
+                        detail_info['description'] = aplus_text
+            
+                # feature-bulletsセクション（商品の特徴）
+            feature_bullets = soup.select('#feature-bullets .a-list-item')
+            features = []
+            for bullet in feature_bullets:
+                text = bullet.text.strip()
+                if text and not text.startswith('›'):
+                    features.append(text)
+            
+            if features:
+                detail_info['features'] = ' '.join(features)
+            
+            # 商品の詳細情報テーブル
+            detail_table = soup.select('.prodDetTable tr, #productDetails_detailBullets_sections1 tr')
+            for row in detail_table:
+                label = row.select_one('th, .prodDetSectionEntry')
+                value = row.select_one('td, .prodDetAttrValue')
+                if label and value:
+                    label_text = label.text.strip()
+                    value_text = value.text.strip()
+                    if '寸法' in label_text or 'サイズ' in label_text:
+                        detail_info['dimensions'] = value_text
+            
+            print(f"[SUCCESS] Detail info for {asin}: {list(detail_info.keys())}")
+            if 'description' in detail_info:
+                print(f"[DEBUG] Description preview: {detail_info['description'][:200]}...")
+            
+            return detail_info
+            
+        except Exception as e:
+            print(f"[ERROR] Failed to get detail for {asin}: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return {}
     
     async def close(self):
         if self.driver:

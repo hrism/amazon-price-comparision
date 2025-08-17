@@ -31,3 +31,4 @@
 2. [ ] TypeScriptエラーがない
 3. [ ] APIエンドポイントが正しい（localhost vs production）
 4. [ ] 不要なconsole.logを削除
+5. [ ] **ローカルでテストを実行して動作確認済み**（テストなしでのコミット禁止）

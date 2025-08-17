@@ -70,8 +70,8 @@ export async function GET(request: NextRequest) {
       return nextRun.toLocaleString('ja-JP', {
         timeZone: 'Asia/Tokyo',
         year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
+        month: 'numeric',
+        day: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
       });

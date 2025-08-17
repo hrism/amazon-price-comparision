@@ -45,6 +45,7 @@ jobs:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
         NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        GITHUB_ACTIONS: "true"
       run: |
         python -c "
         import asyncio
@@ -63,6 +64,10 @@ jobs:
                 print('Scraping toilet paper products...')
                 scraped = await scraper.search_products('トイレットペーパー')
                 print(f'Found {len(scraped)} products')
+                
+                # 0件の場合はエラーとして扱う
+                if not scraped:
+                    raise Exception('No products found - scraping may have failed')
                 
                 processed = []
                 for product in scraped:
@@ -125,6 +130,7 @@ jobs:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
         NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        GITHUB_ACTIONS: "true"
       run: |
         python -c "
         import asyncio
@@ -142,6 +148,10 @@ jobs:
                 print('Scraping dishwashing liquid products...')
                 scraped = await scraper.search_products('食器用洗剤')
                 print(f'Found {len(scraped)} products')
+                
+                # 0件の場合はエラーとして扱う
+                if not scraped:
+                    raise Exception('No dishwashing products found - scraping may have failed')
                 
                 processed = []
                 for product in scraped:

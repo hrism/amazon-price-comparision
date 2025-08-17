@@ -37,7 +37,12 @@ class Database:
             return
             
         try:
+            from datetime import datetime
+            current_time = datetime.utcnow().isoformat()
+            
             for product in products:
+                # last_fetched_atを追加
+                product['last_fetched_at'] = current_time
                 # asinをキーにしてupsert
                 self.supabase.table('dishwashing_liquid_products').upsert(
                     product,
@@ -199,6 +204,9 @@ class Database:
                 'is_double': None
             }
             
+            from datetime import datetime
+            current_time = datetime.utcnow().isoformat()
+            
             for product in products:
                 product_dict = product.dict()
                 
@@ -210,6 +218,9 @@ class Database:
                     elif default_value is not None:
                         standardized_dict[field] = default_value
                     # None値は除外（Supabaseでnullとして処理される）
+                
+                # last_fetched_atを追加
+                standardized_dict['last_fetched_at'] = current_time
                 
                 # 価格履歴を保存（別途保存）
                 if standardized_dict.get('price_per_m'):
