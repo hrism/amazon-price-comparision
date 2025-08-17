@@ -17,6 +17,7 @@
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `NEXT_PUBLIC_AMAZON_PARTNER_TAG`
 - `OPENAI_API_KEY`
+- `SCRAPE_AUTH_TOKEN` - スクレイピングAPI保護用トークン（32文字以上のランダム文字列推奨）
 
 ### 4. データベーステーブル名
 - トイレットペーパー: `toilet_paper_products`
@@ -44,3 +45,13 @@
   1. Pythonバックエンドを再起動する（uvicornプロセスをkillして再起動）
   2. エンドポイント: `/api/dishwashing/search?keyword=食器用洗剤&force=true`
   3. プロンプトファイル: `python-backend/app/prompts/dishwashing_liquid.py`
+
+### 9. スクレイピングAPIのセキュリティ
+- PythonバックエンドAPIの`/api/search`と`/api/dishwashing/search`エンドポイントで`force=true`指定時に認証を要求
+- 環境変数`SCRAPE_AUTH_TOKEN`を設定して、そのトークンを`scrape_token`パラメータで送信する必要がある
+- ローカル開発環境（`GITHUB_ACTIONS`環境変数が未設定かつ`SCRAPE_AUTH_TOKEN`も未設定）では認証をスキップ
+- GitHub Actions環境では`GITHUB_ACTIONS=true`が設定されているため、トークン認証が有効になる
+- 本番環境でAPIを呼び出す場合の例：
+  ```
+  GET /api/search?keyword=トイレットペーパー&force=true&scrape_token=YOUR_SECRET_TOKEN
+  ```
