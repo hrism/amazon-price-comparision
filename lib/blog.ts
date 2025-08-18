@@ -239,7 +239,7 @@ export async function getBlogSitemap() {
     return [];
   }
 
-  const baseUrl = 'https://amazon-price-comparision.vercel.app';
+  const baseUrl = 'https://www.yasu-ku-kau.com';
 
   return data.map(post => ({
     loc: `${baseUrl}/blog/${post.slug}`,
