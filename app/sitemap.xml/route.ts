@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getBlogSitemap } from '@/lib/blog';
 
 export async function GET() {
-  const baseUrl = 'https://amazon-price-comparision.vercel.app';
+  const baseUrl = 'https://www.yasu-ku-kau.com';
   
   // ブログのURL一覧を取得
   const blogUrls = await getBlogSitemap();
