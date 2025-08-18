@@ -53,6 +53,81 @@ class Product(BaseModel):
 async def root():
     return {"message": "Toilet Paper Price Compare API"}
 
+@app.get("/api/scrape-all")
+async def scrape_all_products(
+    scrape_token: Optional[str] = None
+):
+    """全商品タイプを一括でスクレイピングする統合エンドポイント"""
+    import time
+    from .scrapers.registry import get_all_product_types, get_scraper
+    
+    start_time = time.time()
+    
+    try:
+        # トークン検証（ローカル環境はスキップ）
+        if os.getenv('GITHUB_ACTIONS') == 'true' or os.getenv('SCRAPE_AUTH_TOKEN'):
+            expected_token = os.getenv('SCRAPE_AUTH_TOKEN')
+            if not expected_token:
+                expected_token = secrets.token_urlsafe(32)
+                print(f"Warning: SCRAPE_AUTH_TOKEN not set. Generated token: {expected_token}")
+            
+            if scrape_token != expected_token:
+                raise HTTPException(status_code=403, detail="Invalid scrape token")
+        else:
+            print("Local environment detected - skipping token validation")
+        
+        # 全商品タイプを取得
+        product_types = get_all_product_types()
+        results = {}
+        
+        # 各商品タイプごとにスクレイピング
+        for product_type in product_types:
+            try:
+                type_start = time.time()
+                print(f"Starting {product_type} scraping...")
+                
+                # 対応するスクレイパーを取得
+                scraper_instance = get_scraper(product_type, scraper, text_parser, db)
+                
+                # スクレイピング実行
+                result = await scraper_instance.scrape(force=True)
+                
+                type_time = time.time() - type_start
+                results[product_type] = {
+                    "status": "success",
+                    "count": result["count"],
+                    "new": result.get("new", 0),
+                    "updated": result.get("updated", 0),
+                    "time": round(type_time, 2)
+                }
+                print(f"{product_type} scraping completed: {result['count']} products in {type_time:.2f}s")
+                
+            except Exception as e:
+                results[product_type] = {
+                    "status": "error",
+                    "error": str(e),
+                    "count": 0,
+                    "time": round(time.time() - type_start, 2)
+                }
+                print(f"Error scraping {product_type}: {str(e)}")
+        
+        total_time = time.time() - start_time
+        
+        # 成功した商品数を計算
+        total_success = sum(r["count"] for r in results.values() if r["status"] == "success")
+        
+        return {
+            "success": all(r["status"] == "success" for r in results.values()),
+            "total_products": total_success,
+            "total_time": round(total_time, 2),
+            "results": results,
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+        }
+        
+    except Exception as e:
+        print(f"Error in scrape-all: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/search", response_model=List[Product])
 async def search_products(
     keyword: str = "トイレットペーパー",
