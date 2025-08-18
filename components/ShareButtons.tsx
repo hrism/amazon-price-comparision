@@ -33,8 +33,8 @@ export default function ShareButtons({ url, title, description }: ShareButtonsPr
   };
 
   return (
-    <div className="bg-gray-50 rounded-lg p-6 my-8">
-      <div className="flex flex-wrap gap-3 items-center">
+    <div className="bg-gray-50 rounded-lg p-4 my-8">
+      <div className="flex flex-wrap gap-2 items-center">
         <h3 className="text-sm font-semibold text-gray-700">このページをシェア</h3>
         {/* Twitter/X */}
         <a

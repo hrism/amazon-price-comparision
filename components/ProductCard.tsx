@@ -28,6 +28,7 @@ interface ProductCardProps<T extends BaseProduct> {
   renderBadges: (product: T) => React.ReactNode;
   renderUnitPrice: (product: T) => React.ReactNode;
   renderProductDetails?: (product: T) => React.ReactNode;
+  totalScore?: number;
 }
 
 export default function ProductCard<T extends BaseProduct>({
@@ -40,15 +41,17 @@ export default function ProductCard<T extends BaseProduct>({
   renderBadges,
   renderUnitPrice,
   renderProductDetails,
+  totalScore,
 }: ProductCardProps<T>) {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [showScoreTooltip, setShowScoreTooltip] = useState(false);
   
   const formatPrice = (price?: number) => {
     if (!price) return '-';
     return `¥${price.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
   };
 
-  const isTopRanked = index < 3 && (sortBy === 'price_per_m' || sortBy === 'price_per_1000ml');
+  const isTopRanked = index < 3 && (sortBy === 'price_per_m' || sortBy === 'price_per_1000ml' || sortBy === 'total_score');
 
   return (
     <div className="bg-white border border-[#D5D9D9] rounded-2xl p-4 relative hover:shadow-md transition-shadow">
@@ -130,6 +133,32 @@ export default function ProductCard<T extends BaseProduct>({
             <div>
               <p className="text-[11px] text-[#565959] mb-0.5">{productLabels.price.unitPriceLabel}</p>
               {renderUnitPrice(product)}
+              {totalScore !== undefined && (
+                <div className="relative inline-flex items-center gap-1 mt-2">
+                  <span className="px-2 py-0.5 text-[11px] bg-[#FFD814] text-[#0F1111] rounded-2xl border border-[#FCD200]">
+                    総合: {totalScore.toFixed(2)}点
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowScoreTooltip(!showScoreTooltip)}
+                    className="text-[#565959] hover:text-[#0F1111]"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </button>
+                  {showScoreTooltip && (
+                    <div className="absolute bottom-full left-0 mb-2 w-48 p-2 bg-gray-800 text-white text-[11px] rounded shadow-lg z-10">
+                      <div className="text-[11px] leading-relaxed">
+                        レビュー評価と単価を考慮した総合スコア（5点満点）
+                      </div>
+                      <div className="absolute top-full left-4 -mt-1">
+                        <div className="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

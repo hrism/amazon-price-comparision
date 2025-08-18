@@ -8,10 +8,12 @@ import ReviewFilter from '@/components/ReviewFilter';
 import CategoryBlogSection from '@/components/CategoryBlogSection';
 import ProductPageHeader from '@/components/ProductPageHeader';
 import ShareButtons from '@/components/ShareButtons';
+import SortSelector from '@/components/SortSelector';
 import { categories } from '@/lib/categories';
 import { productLabels, dishwashingLiquidLabels } from '@/lib/labels';
+import { calculateDishwashingScore, SCORE_WEIGHTS } from '@/lib/scoring';
 
-type SortKey = 'price_per_1000ml' | 'price' | 'discount_percent';
+type SortKey = 'price_per_1000ml' | 'price' | 'discount_percent' | 'total_score';
 type FilterType = 'all' | 'refill' | 'regular' | 'sale';
 
 interface DishwashingProduct {
@@ -180,6 +182,11 @@ export default function DishwashingLiquid() {
         return (a.price || Infinity) - (b.price || Infinity);
       case 'discount_percent':
         return (b.discount_percent || 0) - (a.discount_percent || 0);
+      case 'total_score':
+        // 総合評価スコアの計算（高い順）
+        const scoreA = calculateDishwashingScore(a, filteredByReview, SCORE_WEIGHTS.QUALITY_FOCUSED.review, SCORE_WEIGHTS.QUALITY_FOCUSED.price);
+        const scoreB = calculateDishwashingScore(b, filteredByReview, SCORE_WEIGHTS.QUALITY_FOCUSED.review, SCORE_WEIGHTS.QUALITY_FOCUSED.price);
+        return scoreB - scoreA; // 高い順
       default:
         return 0;
     }
@@ -278,20 +285,17 @@ export default function DishwashingLiquid() {
                   )}
                 </div>
                 <div className="flex flex-wrap gap-4">
-                  <div>
-                    <label className="block text-[11px] font-normal text-[#565959] mb-1">
-                      {productLabels.sort.label}
-                    </label>
-                    <select
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value as SortKey)}
-                      className="px-2 py-1 text-[13px] border border-[#D5D9D9] rounded-2xl bg-[#F0F2F2] hover:bg-[#E3E6E6] cursor-pointer"
-                    >
-                      <option value="price_per_1000ml">{dishwashingLiquidLabels.sort.pricePerLiter}</option>
-                      <option value="price">{dishwashingLiquidLabels.sort.price}</option>
-                      <option value="discount_percent">{dishwashingLiquidLabels.sort.discountPercent}</option>
-                    </select>
-                  </div>
+                  <SortSelector
+                    value={sortBy}
+                    onChange={(value) => setSortBy(value as SortKey)}
+                    label={productLabels.sort.label}
+                    options={[
+                      { value: 'total_score', label: '総合評価順' },
+                      { value: 'price_per_1000ml', label: dishwashingLiquidLabels.sort.pricePerLiter },
+                      { value: 'price', label: dishwashingLiquidLabels.sort.price },
+                      { value: 'discount_percent', label: dishwashingLiquidLabels.sort.discountPercent },
+                    ]}
+                  />
 
                   <div>
                     <label className="block text-[11px] font-normal text-[#565959] mb-1">
@@ -319,15 +323,29 @@ export default function DishwashingLiquid() {
             </div>
 
             <div className="space-y-3">
-              {sortedProducts.map((product, index) => (
-                <ProductCard
-                  key={product.asin}
-                  product={product}
-                  index={index}
-                  sortBy={sortBy}
-                  isLocalhost={isLocalhost}
-                  refetchingProducts={refetchingProducts}
-                  onRefetch={refetchProduct}
+              {sortedProducts.map((product, index) => {
+                let totalScore;
+                try {
+                  totalScore = calculateDishwashingScore(product, filteredByReview, SCORE_WEIGHTS.QUALITY_FOCUSED.review, SCORE_WEIGHTS.QUALITY_FOCUSED.price);
+                  if (!isFinite(totalScore)) {
+                    console.warn('Invalid score for product:', product.asin, totalScore);
+                    totalScore = 0;
+                  }
+                } catch (error) {
+                  console.error('Error calculating score for product:', product.asin, error);
+                  totalScore = 0;
+                }
+                
+                return (
+                  <ProductCard
+                    key={product.asin}
+                    product={product}
+                    index={index}
+                    sortBy={sortBy}
+                    isLocalhost={isLocalhost}
+                    refetchingProducts={refetchingProducts}
+                    onRefetch={refetchProduct}
+                    totalScore={totalScore}
                   renderBadges={(product) => (
                     <>
                       {product.is_refill ? (
@@ -361,8 +379,9 @@ export default function DishwashingLiquid() {
                       )}
                     </>
                   )}
-                />
-              ))}
+                  />
+                );
+              })}
             </div>
 
             {/* セクション区切り */}

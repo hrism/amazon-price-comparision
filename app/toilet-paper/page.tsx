@@ -9,10 +9,12 @@ import ReviewFilter from '@/components/ReviewFilter';
 import CategoryBlogSection from '@/components/CategoryBlogSection';
 import ProductPageHeader from '@/components/ProductPageHeader';
 import ShareButtons from '@/components/ShareButtons';
+import SortSelector from '@/components/SortSelector';
 import { categories } from '@/lib/categories';
 import { productLabels, toiletPaperLabels } from '@/lib/labels';
+import { calculateToiletPaperScore, SCORE_WEIGHTS } from '@/lib/scoring';
 
-type SortKey = 'price_per_m' | 'price_per_roll' | 'discount_percent';
+type SortKey = 'price_per_m' | 'price_per_roll' | 'discount_percent' | 'total_score';
 type FilterType = 'all' | 'single' | 'double' | 'sale';
 
 export default function Home() {
@@ -164,6 +166,11 @@ export default function Home() {
         return (a.price_per_roll || Infinity) - (b.price_per_roll || Infinity);
       case 'discount_percent':
         return (b.discount_percent || 0) - (a.discount_percent || 0);
+      case 'total_score':
+        // 総合評価スコアの計算（高い順）
+        const scoreA = calculateToiletPaperScore(a, filteredByReview, SCORE_WEIGHTS.QUALITY_FOCUSED.review, SCORE_WEIGHTS.QUALITY_FOCUSED.price);
+        const scoreB = calculateToiletPaperScore(b, filteredByReview, SCORE_WEIGHTS.QUALITY_FOCUSED.review, SCORE_WEIGHTS.QUALITY_FOCUSED.price);
+        return scoreB - scoreA; // 高い順
       default:
         return 0;
     }
@@ -262,20 +269,17 @@ export default function Home() {
                   )}
                 </div>
                 <div className="flex flex-wrap gap-4">
-                  <div>
-                    <label className="block text-[11px] font-normal text-[#565959] mb-1">
-                      {productLabels.sort.label}
-                    </label>
-                    <select
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value as SortKey)}
-                      className="px-2 py-1 text-[13px] border border-[#D5D9D9] rounded-2xl bg-[#F0F2F2] hover:bg-[#E3E6E6] cursor-pointer"
-                    >
-                      <option value="price_per_m">{toiletPaperLabels.sort.pricePerMeter}</option>
-                      <option value="price_per_roll">{toiletPaperLabels.sort.pricePerRoll}</option>
-                      <option value="discount_percent">{toiletPaperLabels.sort.discountPercent}</option>
-                    </select>
-                  </div>
+                  <SortSelector
+                    value={sortBy}
+                    onChange={(value) => setSortBy(value as SortKey)}
+                    label={productLabels.sort.label}
+                    options={[
+                      { value: 'total_score', label: '総合評価順' },
+                      { value: 'price_per_m', label: toiletPaperLabels.sort.pricePerMeter },
+                      { value: 'price_per_roll', label: toiletPaperLabels.sort.pricePerRoll },
+                      { value: 'discount_percent', label: toiletPaperLabels.sort.discountPercent },
+                    ]}
+                  />
 
                   <div>
                     <label className="block text-[11px] font-normal text-[#565959] mb-1">
@@ -303,15 +307,29 @@ export default function Home() {
             </div>
 
             <div className="space-y-3">
-              {sortedProducts.map((product, index) => (
-                <ProductCard
-                  key={product.asin}
-                  product={product}
-                  index={index}
-                  sortBy={sortBy}
-                  isLocalhost={isLocalhost}
-                  refetchingProducts={refetchingProducts}
-                  onRefetch={refetchProduct}
+              {sortedProducts.map((product, index) => {
+                let totalScore;
+                try {
+                  totalScore = calculateToiletPaperScore(product, filteredByReview, SCORE_WEIGHTS.QUALITY_FOCUSED.review, SCORE_WEIGHTS.QUALITY_FOCUSED.price);
+                  if (!isFinite(totalScore)) {
+                    console.warn('Invalid score for product:', product.asin, totalScore);
+                    totalScore = 0;
+                  }
+                } catch (error) {
+                  console.error('Error calculating score for product:', product.asin, error);
+                  totalScore = 0;
+                }
+                
+                return (
+                  <ProductCard
+                    key={product.asin}
+                    product={product}
+                    index={index}
+                    sortBy={sortBy}
+                    isLocalhost={isLocalhost}
+                    refetchingProducts={refetchingProducts}
+                    onRefetch={refetchProduct}
+                    totalScore={totalScore}
                   renderBadges={(product) => (
                     <>
                       {product.is_double !== null && (
@@ -353,8 +371,9 @@ export default function Home() {
                       )}
                     </>
                   )}
-                />
-              ))}
+                  />
+                );
+              })}
             </div>
 
             {/* セクション区切り */}
