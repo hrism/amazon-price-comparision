@@ -42,7 +42,7 @@ export default function CategoryBlogSection({ categorySlug, categoryName }: Cate
         .eq('category_id', categoryId)
         .eq('status', 'published')
         .order('published_at', { ascending: false })
-        .limit(3);
+        .limit(4);
 
       if (error) {
         console.error('Error fetching blog posts:', error);
@@ -104,7 +104,7 @@ export default function CategoryBlogSection({ categorySlug, categoryName }: Cate
         </a>
       </div>
       
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {posts.map((post) => (
           <a 
             key={post.id} 
@@ -113,7 +113,7 @@ export default function CategoryBlogSection({ categorySlug, categoryName }: Cate
           >
             <article>
               {post.featured_image && (
-                <div className="w-full h-40 sm:h-48 mb-3">
+                <div className="w-full h-40 mb-3">
                   <img 
                     src={post.featured_image} 
                     alt={post.title}

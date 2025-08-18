@@ -8,6 +8,7 @@ import ProductCard from '@/components/ProductCard';
 import ReviewFilter from '@/components/ReviewFilter';
 import CategoryBlogSection from '@/components/CategoryBlogSection';
 import ProductPageHeader from '@/components/ProductPageHeader';
+import ShareButtons from '@/components/ShareButtons';
 import { categories } from '@/lib/categories';
 import { productLabels, toiletPaperLabels } from '@/lib/labels';
 
@@ -180,6 +181,13 @@ export default function Home() {
           title="でトイレットペーパーを安く買う"
           description="このページでは、Amazon.co.jpで販売されているトイレットペーパーを「1メートル単価」で比較できます。2倍巻き・3倍巻きなどの長巻きタイプも正確に計算し、本当にお得な商品を見つけることができます。"
           tip="表示価格は自動更新されます。セール情報や割引率も一目で確認できるので、タイミングを逃さずお買い物できます。"
+        />
+        
+        {/* SNSシェアボタン */}
+        <ShareButtons 
+          url="https://www.yasu-ku-kau.com/toilet-paper"
+          title="トイレットペーパーの最安値を探す | 安く買う.com"
+          description="Amazon内のトイレットペーパーを1メートル単価で比較。本当にお得な商品を見つけよう！"
         />
 
         {loading ? (

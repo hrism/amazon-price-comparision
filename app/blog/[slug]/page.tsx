@@ -5,6 +5,7 @@ import { getBlogPost } from '@/lib/blog';
 import { generateTOC, addIdsToHeadings, calculateReadingTime } from '@/lib/blog-utils';
 import TOCSection from '@/components/TOCSection';
 import ScrollToTop from '@/components/ScrollToTop';
+import ShareButtons from '@/components/ShareButtons';
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const post = await getBlogPost(params.slug);
@@ -110,6 +111,13 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
         )}
       </header>
       
+      {/* SNSシェアボタン（上部） */}
+      <ShareButtons 
+        url={`https://www.yasu-ku-kau.com/blog/${params.slug}`}
+        title={post.title}
+        description={post.excerpt}
+      />
+      
       {/* TOCと読了時間 */}
       {toc.length > 0 && (
         <TOCSection toc={toc} readingTimeMinutes={readingTimeMinutes} />
@@ -134,6 +142,13 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
         [&_a>strong]:text-blue-600 [&_a>strong]:hover:text-blue-800">
         <div dangerouslySetInnerHTML={{ __html: contentWithIds }} />
       </article>
+      
+      {/* SNSシェアボタン */}
+      <ShareButtons 
+        url={`https://www.yasu-ku-kau.com/blog/${params.slug}`}
+        title={post.title}
+        description={post.excerpt}
+      />
       
       {/* 著者紹介 */}
       <div className="mt-12 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">

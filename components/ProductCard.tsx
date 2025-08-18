@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { getAmazonProductUrl } from '@/lib/amazon-link';
 import { productLabels } from '@/lib/labels';
+import ShareModal from '@/components/ShareModal';
 
 interface BaseProduct {
   asin: string;
@@ -39,6 +41,8 @@ export default function ProductCard<T extends BaseProduct>({
   renderUnitPrice,
   renderProductDetails,
 }: ProductCardProps<T>) {
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  
   const formatPrice = (price?: number) => {
     if (!price) return '-';
     return `¥${price.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
@@ -147,6 +151,16 @@ export default function ProductCard<T extends BaseProduct>({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
             </a>
+            <button
+              onClick={() => setIsShareModalOpen(true)}
+              className="inline-flex items-center px-3 py-1.5 text-[13px] rounded-2xl transition-colors border shadow-sm bg-white text-[#0F1111] hover:bg-gray-50 border-[#D5D9D9]"
+              aria-label="シェア"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m9.032 4.026a3 3 0 10-4.028-4.342 3 3 0 004.028 4.342zm0 0l-5.034-2.684m0 0a3 3 0 10-4.028-4.342m4.028 4.342L8.684 10.658" />
+              </svg>
+              <span className="ml-1">シェア</span>
+            </button>
             {isLocalhost && onRefetch && (
               <button
                 onClick={() => onRefetch(product.asin)}
@@ -178,6 +192,15 @@ export default function ProductCard<T extends BaseProduct>({
           </div>
         </div>
       </div>
+      
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        url={getAmazonProductUrl(product.asin)}
+        title={product.title}
+        description={`${product.brand ? product.brand + ' ' : ''}${product.title} - 安く買う.comで価格比較`}
+      />
     </div>
   );
 }

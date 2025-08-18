@@ -104,7 +104,12 @@ export async function getBlogPosts(params?: {
 
   const { data, error, count } = await query;
   
-  console.log('Blog posts query result:', { data, error, count });
+  console.log('Blog posts query result:', { 
+    dataCount: data?.length, 
+    error, 
+    count,
+    firstPost: data?.[0]?.slug 
+  });
   
   if (error) {
     console.error('Error fetching blog posts:', error);

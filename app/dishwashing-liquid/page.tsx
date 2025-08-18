@@ -7,6 +7,7 @@ import ProductCard from '@/components/ProductCard';
 import ReviewFilter from '@/components/ReviewFilter';
 import CategoryBlogSection from '@/components/CategoryBlogSection';
 import ProductPageHeader from '@/components/ProductPageHeader';
+import ShareButtons from '@/components/ShareButtons';
 import { categories } from '@/lib/categories';
 import { productLabels, dishwashingLiquidLabels } from '@/lib/labels';
 
@@ -196,6 +197,13 @@ export default function DishwashingLiquid() {
           title="で食器用洗剤を安く買う"
           description="このページでは、Amazon.co.jpで販売されている食器用洗剤を「1000ml単価」で比較できます。詰め替え用と本体の価格差も一目瞭然。本当にお得な商品を見つけることができます。"
           tip="詰め替え用は環境にも優しく、多くの場合本体より単価が安くなっています。"
+        />
+        
+        {/* SNSシェアボタン */}
+        <ShareButtons 
+          url="https://www.yasu-ku-kau.com/dishwashing-liquid"
+          title="食器用洗剤の最安値を探す | 安く買う.com"
+          description="Amazon内の食器用洗剤を1000ml単価で比較。詰め替え用と本体の価格差も一目瞭然！"
         />
 
         {loading ? (
