@@ -157,7 +157,7 @@ export default function ProductCard<T extends BaseProduct>({
               aria-label="シェア"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m9.032 4.026a3 3 0 10-4.028-4.342 3 3 0 004.028 4.342zm0 0l-5.034-2.684m0 0a3 3 0 10-4.028-4.342m4.028 4.342L8.684 10.658" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
               </svg>
               <span className="ml-1">シェア</span>
             </button>
