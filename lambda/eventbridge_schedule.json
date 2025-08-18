@@ -1,0 +1,11 @@
+{
+  "Name": "amazon-price-scraper-schedule",
+  "Description": "2時間ごとにAmazon価格スクレイピングを実行",
+  "ScheduleExpression": "rate(2 hours)",
+  "State": "ENABLED",
+  "Target": {
+    "Arn": "arn:aws:lambda:ap-northeast-1:YOUR_ACCOUNT_ID:function:amazon-price-scraper",
+    "RoleArn": "arn:aws:iam::YOUR_ACCOUNT_ID:role/service-role/Amazon_EventBridge_Invoke_Lambda",
+    "Input": "{\"product_types\": [\"toilet_paper\", \"dishwashing_liquid\"]}"
+  }
+}

@@ -51,6 +51,9 @@ OPENAI_API_KEY=your_openai_api_key
 
 # Amazon Partner
 NEXT_PUBLIC_AMAZON_PARTNER_TAG=your_partner_tag
+
+# スクレイピングAPI保護（本番環境用）
+SCRAPE_AUTH_TOKEN=your_secure_random_token  # 本番環境で設定
 ```
 
 ### 3. 依存関係のインストール
@@ -293,6 +296,15 @@ Response:
 - 自動ブロック: 異常なアクセスパターン検出時
 ```
 
+### スクレイピングAPI保護
+```python
+// /python-backend/app/main.py
+- 環境変数 SCRAPE_AUTH_TOKEN によるトークン認証
+- force=true（強制スクレイピング）時のみ認証が必要
+- ローカル開発環境では自動的に認証をスキップ
+- GitHub Actions環境では GITHUB_ACTIONS=true で判定
+```
+
 ## 🚀 デプロイメント
 
 ### 本番環境（Vercel）
@@ -304,6 +316,7 @@ NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY  
 NEXT_PUBLIC_AMAZON_PARTNER_TAG
 OPENAI_API_KEY
+SCRAPE_AUTH_TOKEN  # スクレイピングAPI保護用（ランダムな32文字以上推奨）
 ```
 
 #### デプロイコマンド

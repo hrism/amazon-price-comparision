@@ -130,26 +130,31 @@ export default function DishwashingLiquid() {
     });
 
     try {
-      console.log(`Refetching product: ${asin}`);
+      console.log(`Refetching all dishwashing liquid products via Lambda`);
 
-      // Next.jsのAPIルートを使用
-      const apiUrl = '/api/refetch-product';
-      const response = await fetch(`${apiUrl}/${asin}`, {
+      // Lambda関数経由でスクレイピング実行
+      const response = await fetch('/api/lambda-scrape', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          product_types: ['dishwashing_liquid'],
+          force_scrape: true,
+          scrape_token: process.env.NEXT_PUBLIC_SCRAPE_TOKEN
+        }),
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to refetch product: ${response.statusText}`);
+        throw new Error(`Failed to refetch products: ${response.statusText}`);
       }
 
       const result = await response.json();
-      console.log(`Refetch completed for ${asin}:`, result);
+      console.log(`Lambda scraping completed:`, result);
 
       // 商品リストを再取得してUIを更新
       await fetchProducts();
 
     } catch (err) {
-      console.error(`Error refetching product ${asin}:`, err);
+      console.error(`Error refetching products:`, err);
       alert(`価格の再取得に失敗しました: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setRefetchingProducts(prev => {
