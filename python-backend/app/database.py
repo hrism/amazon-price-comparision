@@ -5,15 +5,17 @@ from supabase import create_client, Client
 import json
 from dotenv import load_dotenv
 from pathlib import Path
+import httpx
 
 class Database:
     def __init__(self):
-        # Load .env file from python-backend directory
-        env_path = Path(__file__).parent.parent / '.env'
+        # Load .env.local file from project root
+        env_path = Path(__file__).parent.parent.parent / '.env.local'
         load_dotenv(env_path)
         
         url = os.environ.get("NEXT_PUBLIC_SUPABASE_URL")
-        key = os.environ.get("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+        # Use service key for write access, fallback to anon key for read-only
+        key = os.environ.get("SUPABASE_SERVICE_KEY") or os.environ.get("NEXT_PUBLIC_SUPABASE_ANON_KEY")
         
         if not url or not key:
             print("Warning: Supabase credentials not found. Database features will be disabled.")
@@ -262,8 +264,41 @@ class Database:
             
             print(f"Upserted {success_count} products successfully, {error_count} errors")
             
+            # Vercelのキャッシュをパージ
+            if success_count > 0:
+                await self.purge_vercel_cache()
+            
         except Exception as e:
             print(f"Error upserting products: {str(e)}")
             # エラーの詳細を表示
             if hasattr(e, 'response') and hasattr(e.response, 'text'):
                 print(f"Error details: {e.response.text}")
+    
+    async def purge_vercel_cache(self) -> None:
+        """Vercelのデータキャッシュをパージする"""
+        try:
+            # VercelのAPIトークンが必要
+            vercel_token = os.environ.get("VERCEL_API_TOKEN")
+            if not vercel_token:
+                print("VERCEL_API_TOKEN not found, skipping cache purge")
+                return
+            
+            # revalidateエンドポイントを呼び出してキャッシュを再検証
+            async with httpx.AsyncClient() as client:
+                # GETリクエストでパラメータとして送信
+                paths = "/toilet-paper,/dishwashing-liquid,/,/api/products,/api/scrape-status"
+                tags = "products,scrape-status"
+                url = f"https://www.yasu-ku-kau.com/api/revalidate?token={vercel_token}&paths={paths}&tags={tags}"
+                
+                try:
+                    response = await client.get(url)
+                    if response.status_code == 200:
+                        result = response.json()
+                        print(f"Successfully revalidated cache: {result}")
+                    else:
+                        print(f"Failed to revalidate cache: {response.status_code} - {response.text}")
+                except Exception as e:
+                    print(f"Error calling revalidate API: {str(e)}")
+                        
+        except Exception as e:
+            print(f"Error purging Vercel cache: {str(e)}")
