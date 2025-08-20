@@ -299,6 +299,17 @@ class Database:
                         print(f"Failed to revalidate cache: {response.status_code} - {response.text}")
                 except Exception as e:
                     print(f"Error calling revalidate API: {str(e)}")
-                        
         except Exception as e:
-            print(f"Error purging Vercel cache: {str(e)}")
+            print(f"Error in purge_vercel_cache: {str(e)}")
+    
+    async def delete_product(self, asin: str) -> None:
+        """商品をASINで削除"""
+        if not self.enabled:
+            return
+        
+        try:
+            # toilet_paper_productsテーブルから削除
+            result = self.supabase.table('toilet_paper_products').delete().eq('asin', asin).execute()
+            print(f"Deleted product: {asin}")
+        except Exception as e:
+            print(f"Error deleting product {asin}: {str(e)}")

@@ -152,8 +152,14 @@ export default function Home() {
     }
   };
 
-  // レビュースコアでフィルタリング
+  // レビュースコアと単価データでフィルタリング
   const filteredByReview = products.filter(product => {
+    // 単価が取得できていない商品を除外（price_per_mまたはprice_per_rollが有効な値を持つ）
+    const hasValidPrice = (product.price_per_m && product.price_per_m > 0) || 
+                         (product.price_per_roll && product.price_per_roll > 0);
+    if (!hasValidPrice) return false;
+    
+    // レビュースコアでフィルタリング
     if (minReviewScore === 0) return true;
     return (product.review_avg || 0) >= minReviewScore;
   });

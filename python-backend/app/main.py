@@ -157,13 +157,26 @@ async def search_products(
         
         # 強制更新でない限り、DBキャッシュを優先的に使用
         if not force:
-            # DBから既存の商品を取得（4時間の制限なし）
+            # DBから既存の商品を取得（キーワードでフィルタリング）
             cached_products = await db.get_all_cached_products(filter)
+            
+            # キーワードでフィルタリング
+            if cached_products and keyword and keyword != "トイレットペーパー":
+                # キーワードが指定されている場合はタイトルと説明でフィルタリング
+                filtered_products = []
+                keyword_lower = keyword.lower()
+                for product in cached_products:
+                    title = (product.get('title') or '').lower()
+                    description = (product.get('description') or '').lower()
+                    if keyword_lower in title or keyword_lower in description:
+                        filtered_products.append(product)
+                cached_products = filtered_products
+            
             if cached_products:
-                print(f"Returning {len(cached_products)} products from database")
+                print(f"Returning {len(cached_products)} products from database (keyword: {keyword})")
                 return cached_products
             else:
-                print("No products in database, performing initial scraping...")
+                print(f"No products in database for keyword: {keyword}, performing initial scraping...")
         
         # force=true の場合のみスクレイピング実行
         scraping_start = time.time()
