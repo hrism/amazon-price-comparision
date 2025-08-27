@@ -5,8 +5,12 @@
 interface ProductWithScore {
   price_per_m?: number;
   price_per_1000ml?: number;
+  price_per_liter?: number;
   review_avg?: number;
   review_count?: number;
+  price_score?: number;
+  review_score?: number;
+  total_score?: number;
 }
 
 /**
@@ -110,6 +114,45 @@ export function calculateDishwashingScore(
   
   // 重み付けして総合スコアを計算
   return adjustedReviewScore * reviewWeight + priceScore * priceWeight;
+}
+
+/**
+ * ミネラルウォーター用の総合評価スコア計算（他商品と統一した5点満点方式）
+ */
+export function calculateMineralWaterScore(
+  product: ProductWithScore & { price_per_liter?: number },
+  allProducts: (ProductWithScore & { price_per_liter?: number })[] = [],
+  reviewWeight = 0.5,
+  priceWeight = 0.5
+): number {
+  let score = 0;
+
+  // レビュースコア (0-5点)
+  if (product.review_avg && product.review_avg > 0) {
+    score += product.review_avg * reviewWeight;
+  }
+
+  // 価格スコア (0-5点)
+  if (product.price_per_liter && product.price_per_liter > 0 && allProducts.length > 0) {
+    const prices = allProducts
+      .filter(p => p.price_per_liter && p.price_per_liter > 0)
+      .map(p => p.price_per_liter!);
+    
+    if (prices.length > 0) {
+      const minPrice = Math.min(...prices);
+      const maxPrice = Math.max(...prices);
+      
+      if (maxPrice !== minPrice) {
+        // 安い方が高得点
+        const priceScore = ((maxPrice - product.price_per_liter) / (maxPrice - minPrice)) * 5;
+        score += priceScore * priceWeight;
+      } else {
+        score += 2.5 * priceWeight; // 全て同じ価格の場合は中間点
+      }
+    }
+  }
+
+  return Math.min(5, score); // 最大5点
 }
 
 /**

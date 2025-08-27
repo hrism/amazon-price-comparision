@@ -18,7 +18,7 @@ interface BlogPost {
 }
 
 interface CategoryBlogSectionProps {
-  categorySlug: 'toilet-paper' | 'dishwashing-liquid';
+  categorySlug: 'toilet-paper' | 'dishwashing-liquid' | 'mineral-water';
   categoryName: string;
 }
 
@@ -33,7 +33,8 @@ export default function CategoryBlogSection({ categorySlug, categoryName }: Cate
   const fetchBlogPosts = async () => {
     try {
       // カテゴリIDをスラッグから直接マッピング
-      const categoryId = categorySlug === 'toilet-paper' ? 1 : 2;
+      const categoryId = categorySlug === 'toilet-paper' ? 1 : 
+                        categorySlug === 'dishwashing-liquid' ? 2 : 3;
 
       // 該当カテゴリのブログ記事を取得
       const { data, error } = await supabase

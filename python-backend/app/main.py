@@ -633,6 +633,10 @@ async def search_dishwashing_products(
         print(f"Full traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# ミネラルウォーターエンドポイントを追加
+from app.endpoints.mineral_water import router as mineral_water_router
+app.include_router(mineral_water_router)
+
 @app.on_event("shutdown")
 async def shutdown_event():
     await scraper.close()

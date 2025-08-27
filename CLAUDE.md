@@ -4,6 +4,7 @@
 
 ### 1. ローカルテスト必須
 **必ずローカルでテストを実行してから変更をコミット・プッシュすること**
+- Curlコマンド等で必ず対象ページを確認してから完了報告を行う
 - スクレイピング機能の変更時は実際にローカルでスクレイピングを実行
 - パーサーの変更時は実際のデータで動作確認
 - 変更内容が正しく動作することを確認してからコミット
@@ -56,7 +57,16 @@
   GET /api/search?keyword=トイレットペーパー&force=true&scrape_token=YOUR_SECRET_TOKEN
   ```
 
-### 10. 全商品一括スクレイピング手順
+### 10. APIエンドポイントの日本語パラメータ
+**重要**: curlやAPIリクエストで日本語パラメータを使用する場合は、必ずURLエンコードすること
+- NG: `keyword=ミネラルウォーター` 
+- OK: `keyword=%E3%83%9F%E3%83%8D%E3%83%A9%E3%83%AB%E3%82%A6%E3%82%A9%E3%83%BC%E3%82%BF%E3%83%BC`
+- NG: `keyword=食器用洗剤`
+- OK: `keyword=%E9%A3%9F%E5%99%A8%E7%94%A8%E6%B4%97%E5%89%A4`
+- NG: `keyword=トイレットペーパー`
+- OK: `keyword=%E3%83%88%E3%82%A4%E3%83%AC%E3%83%83%E3%83%88%E3%83%9A%E3%83%BC%E3%83%91%E3%83%BC`
+
+### 11. 全商品一括スクレイピング手順
 1. **Pythonバックエンドを起動**
    ```bash
    cd python-backend
@@ -78,7 +88,11 @@
      ```
    - 食器用洗剤のみ：
      ```bash
-     curl -X GET "http://localhost:8000/api/dishwashing/search?keyword=食器用洗剤&force=true"
+     curl -X GET "http://localhost:8000/api/dishwashing/search?keyword=%E9%A3%9F%E5%99%A8%E7%94%A8%E6%B4%97%E5%89%A4&force=true"
+     ```
+   - ミネラルウォーターのみ：
+     ```bash
+     curl -X GET "http://localhost:8000/api/mineral-water/search?keyword=%E3%83%9F%E3%83%8D%E3%83%A9%E3%83%AB%E3%82%A6%E3%82%A9%E3%83%BC%E3%82%BF%E3%83%BC&force=true"
      ```
 
 4. **既存スクリプトを使った管理**

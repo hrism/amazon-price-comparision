@@ -45,6 +45,7 @@ export const productLabels = {
     loading: '読み込み中...',
     error: 'エラー',
     productsCount: '件の商品',
+    noProducts: '条件に一致する商品が見つかりませんでした',
   },
 } as const;
 
@@ -87,6 +88,27 @@ export const dishwashingLiquidLabels = {
     regular: '本体',
     volume: '容量',
     milliliter: 'ml',
+    perLiter: '/L',
+  },
+} as const;
+
+// ミネラルウォーター専用ラベル
+export const mineralWaterLabels = {
+  sort: {
+    pricePerLiter: '1L単価（安い順）',
+    price: '価格（安い順）',
+    discountPercent: '割引率（高い順）',
+  },
+  filter: {
+    caseOnly: 'ケース買い',
+    bottleOnly: 'ボトル単品',
+  },
+  product: {
+    case: 'ケース買い',
+    bottle: 'ペットボトル',
+    volume: '容量',
+    totalVolume: '総容量',
+    liter: 'L',
     perLiter: '/L',
   },
 } as const;

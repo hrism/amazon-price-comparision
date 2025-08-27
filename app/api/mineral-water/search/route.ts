@@ -1,0 +1,80 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+export const dynamic = 'force-dynamic';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+export async function GET(request: NextRequest) {
+  try {
+    const searchParams = request.nextUrl.searchParams;
+    const keyword = searchParams.get('keyword') || 'ミネラルウォーター';
+    const force = searchParams.get('force') === 'true';
+
+    // forceパラメータがtrueの場合、Pythonバックエンドにスクレイピングを依頼
+    if (force) {
+      const pythonBackendUrl = process.env.NODE_ENV === 'production'
+        ? 'https://your-python-backend.herokuapp.com'  // 本番環境のURL
+        : 'http://localhost:8000';  // ローカル環境
+      
+      try {
+        const response = await fetch(`${pythonBackendUrl}/api/mineral-water/search?keyword=${encodeURIComponent(keyword)}&force=true`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Python backend error: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return NextResponse.json(data);
+      } catch (error) {
+        console.error('Python backend error:', error);
+        // Pythonバックエンドが利用できない場合は、既存のデータを返す
+      }
+    }
+
+    // データベースから既存データを取得
+    const { data, error } = await supabase
+      .from('mineral_water_products')
+      .select('*')
+      .order('price_per_liter', { ascending: true });
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json(
+        { error: 'データの取得に失敗しました' },
+        { status: 500 }
+      );
+    }
+
+    // 最終更新日時を取得
+    let lastUpdated = null;
+    if (data && data.length > 0) {
+      const latestProduct = data.reduce((latest, product) => {
+        if (!latest.last_fetched_at) return product;
+        if (!product.last_fetched_at) return latest;
+        return new Date(product.last_fetched_at) > new Date(latest.last_fetched_at) ? product : latest;
+      });
+      lastUpdated = latestProduct.last_fetched_at;
+    }
+
+    return NextResponse.json({
+      data,
+      last_updated: lastUpdated,
+      count: data?.length || 0
+    });
+  } catch (error) {
+    console.error('API error:', error);
+    return NextResponse.json(
+      { error: 'サーバーエラーが発生しました' },
+      { status: 500 }
+    );
+  }
+}
