@@ -363,6 +363,64 @@ SUPABASE_SERVICE_KEY
 3. 実行履歴から成功/失敗を確認
 4. 手動実行: "Run workflow"ボタン
 
+### コマンドラインでの手動スクレイピング実行
+
+#### 全商品一括スクレイピング
+```bash
+# 1. Pythonバックエンドを起動
+cd python-backend
+uvicorn app.main:app --reload --port 8000
+
+# 2. 別ターミナルで全体スクレイピングを実行
+curl -X GET "http://localhost:8000/api/scrape-all"
+
+# 実行結果の例:
+# {
+#   "success": true,
+#   "total_products": 120,
+#   "total_time": 45.32,
+#   "results": {
+#     "toilet_paper": {
+#       "status": "success",
+#       "count": 80,
+#       "new": 5,
+#       "updated": 75,
+#       "time": 25.12
+#     },
+#     "dishwashing_liquid": {
+#       "status": "success",
+#       "count": 40,
+#       "new": 2,
+#       "updated": 38,
+#       "time": 20.20
+#     }
+#   },
+#   "timestamp": "2025-08-21 15:30:45"
+# }
+```
+
+#### 商品別スクレイピング
+```bash
+# トイレットペーパーのみ
+curl -X GET "http://localhost:8000/api/search?keyword=トイレットペーパー&force=true"
+
+# 食器用洗剤のみ
+curl -X GET "http://localhost:8000/api/dishwashing/search?keyword=食器用洗剤&force=true"
+```
+
+#### 本番環境でのスクレイピング（認証付き）
+```bash
+# 環境変数SCRAPE_AUTH_TOKENが設定されている場合
+curl -X GET "https://your-api.com/api/scrape-all?scrape_token=YOUR_SECRET_TOKEN"
+```
+
+#### Pythonスクリプトでの実行
+```bash
+# check_all_products.pyを使用した確認
+cd python-backend
+python check_all_products.py
+```
+
 ### エラー対応
 
 #### スクレイピング失敗時

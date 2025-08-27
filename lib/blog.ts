@@ -62,6 +62,8 @@ export async function getBlogPosts(params?: {
 }) {
   const { category, tag, search, page = 1, per_page = 10 } = params || {};
   
+  const now = new Date().toISOString();
+  
   let query = supabase
     .from('blog_posts')
     .select(`
@@ -83,7 +85,7 @@ export async function getBlogPosts(params?: {
       view_count,
       category:blog_categories(*)
     `, { count: 'exact' })
-    .eq('status', 'published')
+    .or(`status.eq.published,and(status.eq.scheduled,published_at.lte.${now})`)
     .order('published_at', { ascending: false });
   
   // published_atのフィルタリングは後で行う（タイムゾーン問題を回避）
@@ -122,11 +124,11 @@ export async function getBlogPosts(params?: {
   }
 
   // published_atでフィルタリング（JST対応）
-  const now = new Date();
+  const nowDate = new Date();
   const filteredPosts = (data || []).filter(post => {
     if (!post.published_at) return false;
     const publishedDate = new Date(post.published_at);
-    return publishedDate <= now;
+    return publishedDate <= nowDate;
   });
 
   // 各記事のタグを取得
@@ -158,6 +160,8 @@ export async function getBlogPosts(params?: {
 
 // 個別記事取得
 export async function getBlogPost(slug: string) {
+  const now = new Date().toISOString();
+  
   // まず記事本体を取得
   const { data: post, error } = await supabase
     .from('blog_posts')
@@ -166,7 +170,7 @@ export async function getBlogPost(slug: string) {
       category:blog_categories(*)
     `)
     .eq('slug', slug)
-    .eq('status', 'published')
+    .or(`status.eq.published,and(status.eq.scheduled,published_at.lte.${now})`)
     .single();
 
   if (error) {

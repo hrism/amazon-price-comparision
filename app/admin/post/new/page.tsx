@@ -132,6 +132,8 @@ export default function NewPostPage() {
         category_id: formData.category_id ? parseInt(formData.category_id) : null,
         published_at: formData.status === 'published' && !formData.published_at 
           ? new Date().toISOString()
+          : formData.status === 'scheduled' && formData.published_at
+          ? formData.published_at
           : formData.published_at || null,
       };
 
@@ -356,6 +358,61 @@ export default function NewPostPage() {
             </select>
           </div>
         </div>
+
+        {/* 予約投稿の日時設定 */}
+        {formData.status === 'scheduled' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              公開予定日時 *
+            </label>
+            <input
+              type="datetime-local"
+              required={formData.status === 'scheduled'}
+              value={(() => {
+                if (!formData.published_at) return '';
+                // ISOString形式の日時をローカルタイムゾーンのdatetime-local形式に変換
+                const date = new Date(formData.published_at);
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                return `${year}-${month}-${day}T${hours}:${minutes}`;
+              })()}
+              min={(() => {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                return `${year}-${month}-${day}T${hours}:${minutes}`;
+              })()}
+              onChange={(e) => {
+                console.log('Input value:', e.target.value);
+                if (e.target.value) {
+                  // datetime-localの値をそのまま保存（ローカルタイムゾーン）
+                  const localDate = new Date(e.target.value);
+                  const isoString = localDate.toISOString();
+                  console.log('Converted to ISO:', isoString);
+                  setFormData(prev => ({ 
+                    ...prev, 
+                    published_at: isoString
+                  }));
+                } else {
+                  setFormData(prev => ({ 
+                    ...prev, 
+                    published_at: ''
+                  }));
+                }
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <p className="mt-1 text-sm text-gray-500">
+              指定した日時に自動的に公開されます（日本時間）
+            </p>
+          </div>
+        )}
 
         {/* タグ */}
         <div>

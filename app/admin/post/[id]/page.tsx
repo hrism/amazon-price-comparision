@@ -39,7 +39,7 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
   const [previewMode, setPreviewMode] = useState(false);
   const [previewHtml, setPreviewHtml] = useState('');
   const [originalContent, setOriginalContent] = useState('');
-  
+
   const [formData, setFormData] = useState({
     title: '',
     slug: '',
@@ -93,8 +93,8 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
 
   const loadPost = async () => {
     try {
-      console.log('Loading post with ID:', params.id);
-      
+      // console.log('Loading post with ID:', params.id);
+
       // UUIDフォーマットをチェック
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(params.id)) {
@@ -103,7 +103,7 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
         router.push('/admin');
         return;
       }
-      
+
       // 記事データを取得
       const { data: post, error } = await supabase
         .from('blog_posts')
@@ -111,7 +111,7 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
         .eq('id', params.id)
         .single();
 
-      console.log('Supabase response:', { post, error });
+      // console.log('Supabase response:', { post, error });
 
       if (error || !post) {
         console.error('Post not found:', error);
@@ -120,14 +120,14 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
         return;
       }
 
-      console.log('Loaded post:', post);
-      console.log('Post content length:', post.content?.length);
-      console.log('Post content sample:', post.content?.substring(0, 500));
-      
+      // console.log('Loaded post:', post);
+      // console.log('Post content length:', post.content?.length);
+      // console.log('Post content sample:', post.content?.substring(0, 500));
+
       // デバッグ: 鍵括弧を含む強調タグを探す
       const strongTagsWithBrackets = post.content?.match(/<strong[^>]*>[^<]*[「」][^<]*<\/strong>/gi);
       if (strongTagsWithBrackets) {
-        console.log('Found strong tags with Japanese brackets:', strongTagsWithBrackets);
+        // console.log('Found strong tags with Japanese brackets:', strongTagsWithBrackets);
       }
 
       // HTMLをマークダウンに変換
@@ -137,37 +137,37 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
         const testContent = post.content || '';
         const boldPatternIndex = testContent.indexOf('<strong>「');
         if (boldPatternIndex !== -1) {
-          console.log('Found bold with bracket at index:', boldPatternIndex);
-          console.log('Context:', testContent.substring(boldPatternIndex, boldPatternIndex + 100));
+          // console.log('Found bold with bracket at index:', boldPatternIndex);
+          // console.log('Context:', testContent.substring(boldPatternIndex, boldPatternIndex + 100));
         }
-        
+
         markdownContent = htmlToMarkdown(post.content || '');
-        console.log('Converted markdown:', markdownContent);
-        console.log('Markdown length:', markdownContent.length);
-        
+        // console.log('Converted markdown:', markdownContent);
+        // console.log('Markdown length:', markdownContent.length);
+
         // 変換後の内容を確認
         const convertedBoldIndex = markdownContent.indexOf('**「');
         if (convertedBoldIndex !== -1) {
-          console.log('Converted bold with bracket at index:', convertedBoldIndex);
-          console.log('Converted context:', markdownContent.substring(convertedBoldIndex, convertedBoldIndex + 100));
+          // console.log('Converted bold with bracket at index:', convertedBoldIndex);
+          // console.log('Converted context:', markdownContent.substring(convertedBoldIndex, convertedBoldIndex + 100));
         }
       } catch (error) {
         console.error('Markdown conversion error:', error);
         // 変換に失敗した場合は元のHTMLをそのまま使用
         markdownContent = post.content || '';
       }
-      
+
       // 変換結果が空の場合は元のコンテンツを保持
       const finalContent = markdownContent || post.content || '';
-      console.log('Final content to set:', finalContent.substring(0, 200));
-      
+      // console.log('Final content to set:', finalContent.substring(0, 200));
+
       // デバッグ: 太字が正しく設定されているか確認
       if (finalContent.includes('**「')) {
-        console.log('Bold with brackets preserved in final content');
+        // console.log('Bold with brackets preserved in final content');
       }
 
       setOriginalContent(post.content || '');
-    
+
       setFormData({
         title: post.title,
         slug: post.slug,
@@ -181,7 +181,7 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
         category_id: post.category_id?.toString() || '',
         published_at: post.published_at || '',
       });
-      
+
       setIsContentLoaded(true);
 
       // タグを取得
@@ -200,7 +200,7 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
   };
 
   const handleTagChange = (tagId: number) => {
-    setSelectedTags(prev => 
+    setSelectedTags(prev =>
       prev.includes(tagId)
         ? prev.filter(id => id !== tagId)
         : [...prev, tagId]
@@ -221,9 +221,9 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
       // マークダウンをHTMLに変換（GFMサポート付き）
       const processedContent = await remark()
         .use(gfm)
-        .use(html, { 
+        .use(html, {
           allowDangerousHtml: false,
-          sanitize: false 
+          sanitize: false
         })
         .process(formData.content);
       const htmlContent = processedContent.toString();
@@ -240,8 +240,10 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
         meta_description: formData.meta_description || null,
         meta_keywords: formData.meta_keywords || null,
         category_id: formData.category_id ? parseInt(formData.category_id) : null,
-        published_at: formData.status === 'published' && !formData.published_at 
+        published_at: formData.status === 'published' && !formData.published_at
           ? new Date().toISOString()
+          : formData.status === 'scheduled' && formData.published_at
+          ? formData.published_at
           : formData.published_at || null,
         updated_at: new Date().toISOString(),
       };
@@ -367,9 +369,9 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
                 if (!previewMode) {
                   const processedContent = await remark()
                     .use(gfm)
-                    .use(html, { 
+                    .use(html, {
                       allowDangerousHtml: false,
-                      sanitize: false 
+                      sanitize: false
                     })
                     .process(formData.content);
                   setPreviewHtml(processedContent.toString());
@@ -381,10 +383,10 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
               {previewMode ? '編集モード' : 'プレビュー'}
             </button>
           </div>
-          
+
           {previewMode ? (
             <div className="border border-gray-300 rounded-md p-4 min-h-[300px] bg-white overflow-x-auto">
-              <div 
+              <div
                 className="prose prose-lg max-w-none prose-table:min-w-full prose-table:border-collapse prose-th:border prose-th:border-gray-300 prose-th:px-4 prose-th:py-2 prose-th:bg-gray-100 prose-td:border prose-td:border-gray-300 prose-td:px-4 prose-td:py-2"
                 dangerouslySetInnerHTML={{ __html: previewHtml }}
               />
@@ -464,6 +466,61 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
           </div>
         </div>
 
+        {/* 予約投稿の日時設定 */}
+        {formData.status === 'scheduled' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              公開予定日時 *
+            </label>
+            <input
+              type="datetime-local"
+              required={formData.status === 'scheduled'}
+              value={(() => {
+                if (!formData.published_at) return '';
+                // ISOString形式の日時をローカルタイムゾーンのdatetime-local形式に変換
+                const date = new Date(formData.published_at);
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                return `${year}-${month}-${day}T${hours}:${minutes}`;
+              })()}
+              min={(() => {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                return `${year}-${month}-${day}T${hours}:${minutes}`;
+              })()}
+              onChange={(e) => {
+                // console.log('Input value:', e.target.value);
+                if (e.target.value) {
+                  // datetime-localの値をそのまま保存（ローカルタイムゾーン）
+                  const localDate = new Date(e.target.value);
+                  const isoString = localDate.toISOString();
+                  // console.log('Converted to ISO:', isoString);
+                  setFormData(prev => ({
+                    ...prev,
+                    published_at: isoString
+                  }));
+                } else {
+                  setFormData(prev => ({
+                    ...prev,
+                    published_at: ''
+                  }));
+                }
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <p className="mt-1 text-sm text-gray-500">
+              指定した日時に自動的に公開されます（日本時間）
+            </p>
+          </div>
+        )}
+
         {/* タグ */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -487,7 +544,7 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
         {/* SEO設定 */}
         <div className="border-t pt-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">SEO設定</h3>
-          
+
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">

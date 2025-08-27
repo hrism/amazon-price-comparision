@@ -65,6 +65,9 @@ export default function BlogPage() {
 
   const fetchBlogPosts = async () => {
     try {
+      // 現在時刻を取得
+      const now = new Date().toISOString();
+      
       const { data, error } = await supabase
         .from('blog_posts')
         .select(`
@@ -74,9 +77,10 @@ export default function BlogPage() {
           excerpt,
           featured_image,
           published_at,
+          status,
           category:blog_categories(*)
         `)
-        .eq('status', 'published')
+        .or(`status.eq.published,and(status.eq.scheduled,published_at.lte.${now})`)
         .order('published_at', { ascending: false });
 
       if (error) {

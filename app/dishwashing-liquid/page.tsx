@@ -170,9 +170,8 @@ export default function DishwashingLiquid() {
 
   // レビュースコアと単価データでフィルタリング
   const filteredByReview = products.filter(product => {
-    // 単価が取得できていない商品を除外（price_per_mlまたはprice_per_100mlが有効な値を持つ）
-    const hasValidPrice = (product.price_per_ml && product.price_per_ml > 0) || 
-                         (product.price_per_100ml && product.price_per_100ml > 0);
+    // 単価が取得できていない商品を除外（price_per_1000mlが有効な値を持つ）
+    const hasValidPrice = product.price_per_1000ml && product.price_per_1000ml > 0;
     if (!hasValidPrice) return false;
     
     // レビュースコアでフィルタリング

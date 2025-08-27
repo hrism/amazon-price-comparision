@@ -55,3 +55,33 @@
   ```
   GET /api/search?keyword=トイレットペーパー&force=true&scrape_token=YOUR_SECRET_TOKEN
   ```
+
+### 10. 全商品一括スクレイピング手順
+1. **Pythonバックエンドを起動**
+   ```bash
+   cd python-backend
+   source venv/bin/activate
+   uvicorn app.main:app --reload --port 8000
+   ```
+
+2. **全商品スクレイピングAPIを実行**（別ターミナルで）
+   ```bash
+   curl -X GET "http://localhost:8000/api/scrape-all"
+   ```
+   - トイレットペーパーと食器用洗剤を一括でスクレイピング
+   - 実行時間：約1-2分（商品数による）
+
+3. **個別商品タイプのスクレイピング**
+   - トイレットペーパーのみ：
+     ```bash
+     curl -X GET "http://localhost:8000/api/search?keyword=トイレットペーパー&force=true"
+     ```
+   - 食器用洗剤のみ：
+     ```bash
+     curl -X GET "http://localhost:8000/api/dishwashing/search?keyword=食器用洗剤&force=true"
+     ```
+
+4. **既存スクリプトを使った管理**
+   - 全商品チェック：`python check_all_products.py`
+   - 本番DB接続確認：`python check_production_db.py`
+   - テスト商品削除：`python delete_test_products.py`
