@@ -155,6 +155,9 @@ export function calculateMineralWaterScore(
   return Math.min(5, score); // 最大5点
 }
 
+// Alias for toilet paper for backward compatibility
+export const calculateScore = calculateToiletPaperScore;
+
 /**
  * スコアの重み付けプリセット
  */

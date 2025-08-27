@@ -52,6 +52,19 @@ export interface BlogTag {
   created_at: string;
 }
 
+// 全記事取得（トップページ用）
+export async function getAllPosts(): Promise<BlogPost[]> {
+  const { posts } = await getBlogPosts({ per_page: 20 });
+  
+  // categoryが文字列かBlogCategoryかを判定して適切に処理
+  return posts.map(post => ({
+    ...post,
+    category: typeof post.category === 'string' 
+      ? post.category 
+      : (post.category?.slug || 'toilet-paper')
+  })) as any;
+}
+
 // ブログ記事一覧取得
 export async function getBlogPosts(params?: {
   category?: string;
