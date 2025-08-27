@@ -47,8 +47,8 @@ function ProductCard({ product, category }: { product: any; category: string }) 
             <h3 className="text-sm font-medium text-gray-900 line-clamp-2">{product.title}</h3>
             <div className="mt-1 flex items-baseline gap-2">
               {unitPrice && (
-                <span className="text-lg font-bold text-green-600">
-                  {formatPrice(unitPrice)}<span className="text-sm">/{getUnitPriceLabel(category)}</span>
+                <span className="text-lg font-bold text-[#B12704]">
+                  {formatPrice(unitPrice)}<span className="text-sm">{getUnitPriceLabel(category)}</span>
                 </span>
               )}
               <span className="text-sm text-gray-600">({formatPrice(product.price)})</span>
@@ -58,7 +58,7 @@ function ProductCard({ product, category }: { product: any; category: string }) 
                 {[...Array(5)].map((_, i) => (
                   <svg
                     key={i}
-                    className={`w-3 h-3 ${i < Math.floor(product.review_avg || 0) ? 'text-yellow-400' : 'text-gray-300'}`}
+                    className={`w-3 h-3 ${i < Math.floor(product.review_avg || 0) ? 'text-[#FF9900]' : 'text-gray-300'}`}
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -67,7 +67,7 @@ function ProductCard({ product, category }: { product: any; category: string }) 
                 ))}
                 <span className="ml-1 text-xs text-gray-600">{product.review_avg?.toFixed(1)}</span>
               </div>
-              <span className="text-xs font-semibold text-blue-600">総合: {product.score?.toFixed(2)}点</span>
+              <span className="px-2 py-0.5 text-[11px] bg-[#FFD814] text-[#0F1111] rounded-2xl border border-[#FCD200]">総合: {product.score?.toFixed(2)}点</span>
             </div>
           </div>
         </div>
@@ -209,13 +209,11 @@ export default async function Home() {
                 </h3>
                 <div className="space-y-3">
                   {category.priceTop3.map((product, index) => (
-                    <div key={product.asin} className="flex gap-2 items-start">
-                      <div className="bg-green-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
-                        {index + 1}
+                    <div key={product.asin} className="relative">
+                      <div className="absolute -top-2 -left-2 bg-[#FF9900] text-white font-bold text-[13px] rounded-full w-10 h-10 flex items-center justify-center shadow-sm z-10">
+                        {index + 1}位
                       </div>
-                      <div className="flex-1">
-                        <ProductCard product={product} category={category.slug} />
-                      </div>
+                      <ProductCard product={product} category={category.slug} />
                     </div>
                   ))}
                 </div>
@@ -229,13 +227,11 @@ export default async function Home() {
                 </h3>
                 <div className="space-y-3">
                   {category.scoreTop3.map((product, index) => (
-                    <div key={product.asin} className="flex gap-2 items-start">
-                      <div className="bg-yellow-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
-                        {index + 1}
+                    <div key={product.asin} className="relative">
+                      <div className="absolute -top-2 -left-2 bg-[#FF9900] text-white font-bold text-[13px] rounded-full w-10 h-10 flex items-center justify-center shadow-sm z-10">
+                        {index + 1}位
                       </div>
-                      <div className="flex-1">
-                        <ProductCard product={product} category={category.slug} />
-                      </div>
+                      <ProductCard product={product} category={category.slug} />
                     </div>
                   ))}
                 </div>
