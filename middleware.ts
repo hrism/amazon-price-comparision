@@ -31,7 +31,9 @@ export function middleware(request: NextRequest) {
       'http://localhost:3000',
       'http://localhost:3001',
       'http://localhost:3002',
-      'https://amazon-price-comparision.vercel.app'
+      'https://amazon-price-comparision.vercel.app',
+      'https://www.yasu-ku-kau.com',
+      'https://yasu-ku-kau.com'
     ].filter(Boolean);
 
     const isValidOrigin = origin && allowedOrigins.some(allowed => origin === allowed);
