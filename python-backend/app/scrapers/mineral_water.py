@@ -63,9 +63,14 @@ class MineralWaterScraper(BaseScraper):
     
     async def save_products(self, products: List[Dict[str, Any]]) -> None:
         """商品データを保存する（総合スコア計算含む）"""
+        print(f"[DEBUG] MineralWater save_products called with {len(products)} products")
+        
         # 総合スコアを計算
-        from app.utils.score_calculator import calculate_all_scores
+        from ..utils.score_calculator import calculate_all_scores
         products_with_scores = calculate_all_scores(products, 'price_per_liter')
+        
+        if products_with_scores:
+            print(f"[DEBUG] First product after score calc: asin={products_with_scores[0].get('asin')}, total_score={products_with_scores[0].get('total_score')}")
         
         # データベースに保存
         from .mineral_water_scraper import save_mineral_water_to_db

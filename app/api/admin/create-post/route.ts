@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 // 管理者用のSupabaseクライアント（RLSを回避）
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   {
     auth: {
       autoRefreshToken: false,
@@ -18,6 +18,8 @@ export async function POST(request: NextRequest) {
     const postData = await request.json();
     
     console.log('Creating post with admin client:', postData.slug);
+    console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
+    console.log('Service key exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY || !!process.env.SUPABASE_SERVICE_KEY);
     
     // 管理者権限で記事を作成（RLSを回避）
     const { data: post, error: postError } = await supabaseAdmin

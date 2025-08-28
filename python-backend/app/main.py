@@ -48,6 +48,7 @@ class Product(BaseModel):
     price_per_roll: Optional[float] = None
     price_per_m: Optional[float] = None
     is_double: Optional[bool] = None
+    total_score: Optional[float] = None
 
 @app.get("/")
 async def root():
@@ -372,27 +373,44 @@ async def search_products(
         print(f"  - Total processed: {len(processed_products)}")
         print(f"  - Analysis time: {analysis_time:.2f}s")
         
+        # 総合スコアを計算
+        from app.utils.score_calculator import calculate_all_scores
+        # Product objectsをdictに変換
+        product_dicts = []
+        for p in processed_products:
+            if hasattr(p, 'dict'):
+                product_dicts.append(p.dict())
+            else:
+                product_dicts.append(p)
+        
+        products_with_scores = calculate_all_scores(product_dicts, 'price_per_m')
+        
+        # dictをProductに戻す
+        processed_products_with_scores = []
+        for pd in products_with_scores:
+            processed_products_with_scores.append(Product(**pd))
+        
         # データベースに保存
         db_start = time.time()
-        await db.upsert_products(processed_products)
+        await db.upsert_products(processed_products_with_scores)
         db_time = time.time() - db_start
         print(f"Saved to database in {db_time:.2f}s")
         
         # フィルタリング
         if filter == 'single':
-            processed_products = [p for p in processed_products if p.is_double == False]
+            processed_products_with_scores = [p for p in processed_products_with_scores if p.is_double == False]
         elif filter == 'double':
-            processed_products = [p for p in processed_products if p.is_double == True]
+            processed_products_with_scores = [p for p in processed_products_with_scores if p.is_double == True]
         elif filter == 'sale':
-            processed_products = [p for p in processed_products if p.on_sale]
+            processed_products_with_scores = [p for p in processed_products_with_scores if p.on_sale]
         
         # ソート（単価順）
-        processed_products.sort(key=lambda p: p.price_per_m or float('inf'))
+        processed_products_with_scores.sort(key=lambda p: p.price_per_m or float('inf'))
         
         total_time = time.time() - start_time
         print(f"Total processing time: {total_time:.2f}s")
         
-        return processed_products
+        return processed_products_with_scores
         
     except Exception as e:
         print(f"Error in search: {str(e)}")
@@ -608,24 +626,28 @@ async def search_dishwashing_products(
             }
             processed_products.append(processed_product)
         
+        # 総合スコアを計算
+        from app.utils.score_calculator import calculate_all_scores
+        processed_products_with_scores = calculate_all_scores(processed_products, 'price_per_1000ml')
+        
         # データベースに保存
-        await db.save_dishwashing_products(processed_products)
+        await db.save_dishwashing_products(processed_products_with_scores)
         
         # フィルタリング
         if filter == 'refill':
-            processed_products = [p for p in processed_products if p['is_refill'] == True]
+            processed_products_with_scores = [p for p in processed_products_with_scores if p['is_refill'] == True]
         elif filter == 'regular':
-            processed_products = [p for p in processed_products if p['is_refill'] == False]
+            processed_products_with_scores = [p for p in processed_products_with_scores if p['is_refill'] == False]
         elif filter == 'sale':
-            processed_products = [p for p in processed_products if p['on_sale']]
+            processed_products_with_scores = [p for p in processed_products_with_scores if p['on_sale']]
         
         # ソート（単価順）
-        processed_products.sort(key=lambda p: p['price_per_1000ml'] or float('inf'))
+        processed_products_with_scores.sort(key=lambda p: p['price_per_1000ml'] or float('inf'))
         
         total_time = time.time() - start_time
         print(f"Total processing time: {total_time:.2f}s")
         
-        return processed_products
+        return processed_products_with_scores
         
     except Exception as e:
         import traceback

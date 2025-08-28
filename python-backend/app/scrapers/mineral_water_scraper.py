@@ -214,7 +214,7 @@ def save_mineral_water_to_db(products: List[Dict]) -> Dict:
     for product in products:
         # デバッグ出力
         print(f"Sample product data keys: {list(product.keys())}")
-        print(f"Sample product data: {product}")
+        print(f"Sample total_score: {product.get('total_score')}")
         break  # 最初の1件だけ出力
     
     # Databaseインスタンスを作成

@@ -203,7 +203,8 @@ class Database:
                 'total_length_m': None,
                 'price_per_roll': None,
                 'price_per_m': None,
-                'is_double': None
+                'is_double': None,
+                'total_score': None
             }
             
             from datetime import datetime

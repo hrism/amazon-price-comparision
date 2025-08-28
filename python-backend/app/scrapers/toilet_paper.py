@@ -117,9 +117,23 @@ class ToiletPaperScraper(BaseScraper):
     
     async def save_products(self, products: List[Dict[str, Any]]) -> None:
         """トイレットペーパー商品を保存（総合スコア計算含む）"""
+        print(f"[DEBUG] save_products called with {len(products)} products")
+        
+        # Product objectsをdictに変換
+        product_dicts = []
+        for p in products:
+            if hasattr(p, 'dict'):
+                product_dicts.append(p.dict())
+            else:
+                product_dicts.append(p)
+        
         # 総合スコアを計算
-        from app.utils.score_calculator import calculate_all_scores
-        products_with_scores = calculate_all_scores(products, 'price_per_m')
+        from ..utils.score_calculator import calculate_all_scores
+        products_with_scores = calculate_all_scores(product_dicts, 'price_per_m')
+        
+        # デバッグ出力
+        if products_with_scores:
+            print(f"[DEBUG] First product after score calc: {products_with_scores[0].get('asin')}, total_score={products_with_scores[0].get('total_score')}")
         
         # データベースに保存
         await self.db.upsert_products(products_with_scores)

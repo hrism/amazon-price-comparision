@@ -44,15 +44,19 @@ async def search_mineral_water(
                     "time": time.time() - start_time
                 }
             
+            # 総合スコアを計算
+            from app.utils.score_calculator import calculate_all_scores
+            products_with_scores = calculate_all_scores(products, 'price_per_liter')
+            
             # データベースに保存
-            save_result = save_mineral_water_to_db(products)
+            save_result = save_mineral_water_to_db(products_with_scores)
             
             print(f"mineral_water scraping completed: {len(products)} products in {time.time() - start_time:.2f}s")
             
             return {
                 "status": "success",
-                "count": len(products),
-                "products": products,
+                "count": len(products_with_scores),
+                "products": products_with_scores,
                 "database": save_result,
                 "time": round(time.time() - start_time, 2)
             }

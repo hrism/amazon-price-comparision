@@ -57,7 +57,7 @@ class DishwashingScraper(BaseScraper):
     async def save_products(self, products: List[Dict[str, Any]]) -> None:
         """食器用洗剤商品を保存（総合スコア計算含む）"""
         # 総合スコアを計算
-        from app.utils.score_calculator import calculate_all_scores
+        from ..utils.score_calculator import calculate_all_scores
         products_with_scores = calculate_all_scores(products, 'price_per_1000ml')
         
         # データベースに保存
