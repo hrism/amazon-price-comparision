@@ -1,36 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// 管理者用のSupabaseクライアント（RLSを回避）
-// 環境変数のデバッグ
-console.log('ENV CHECK - SUPABASE_SERVICE_KEY exists:', !!process.env.SUPABASE_SERVICE_KEY);
-console.log('ENV CHECK - SUPABASE_SERVICE_ROLE_KEY exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
-
-const serviceKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!serviceKey) {
-  console.error('No service key found in environment variables!');
-}
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  serviceKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
+// 管理者用のSupabaseクライアントを関数内で作成（実行時に環境変数を読み込む）
+function getSupabaseAdmin() {
+  const serviceKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (!serviceKey) {
+    console.error('Runtime: No service key found in environment variables!');
+    console.error('SUPABASE_SERVICE_KEY exists:', !!process.env.SUPABASE_SERVICE_KEY);
+    console.error('SUPABASE_SERVICE_ROLE_KEY exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
   }
-);
+
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    serviceKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    }
+  );
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const postData = await request.json();
+    const { tag_ids, ...postData } = await request.json();
     
     console.log('Creating post with admin client:', postData.slug);
     console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
     console.log('Service key exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY || !!process.env.SUPABASE_SERVICE_KEY);
     console.log('Post data received:', JSON.stringify(postData));
+    console.log('Tag IDs:', tag_ids);
+    
+    // 実行時に管理者クライアントを取得
+    const supabaseAdmin = getSupabaseAdmin();
     
     // 管理者権限で記事を作成（RLSを回避）
     const { data: post, error: postError } = await supabaseAdmin
@@ -53,8 +57,8 @@ export async function POST(request: NextRequest) {
     }
     
     // タグの関連付け
-    if (postData.tag_ids && postData.tag_ids.length > 0 && post) {
-      const tagRelations = postData.tag_ids.map((tagId: number) => ({
+    if (tag_ids && tag_ids.length > 0 && post) {
+      const tagRelations = tag_ids.map((tagId: number) => ({
         post_id: post.id,
         tag_id: tagId
       }));
@@ -68,7 +72,7 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    console.log('Post created successfully:', post.id);
+    console.log('Post created successfully:', post?.id);
     
     return NextResponse.json({ 
       success: true, 

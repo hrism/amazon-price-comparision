@@ -1,22 +1,35 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// 管理者用のSupabaseクライアント（RLSを回避）
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
+// 管理者用のSupabaseクライアントを関数内で作成（実行時に環境変数を読み込む）
+function getSupabaseAdmin() {
+  const serviceKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (!serviceKey) {
+    console.error('Runtime: No service key found in environment variables!');
+    console.error('SUPABASE_SERVICE_KEY exists:', !!process.env.SUPABASE_SERVICE_KEY);
+    console.error('SUPABASE_SERVICE_ROLE_KEY exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
   }
-);
+
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    serviceKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    }
+  );
+}
 
 // 予約投稿を公開する処理
 export async function GET() {
   try {
     const now = new Date().toISOString();
+    
+    // 実行時に管理者クライアントを取得
+    const supabaseAdmin = getSupabaseAdmin();
     
     // 公開時刻を過ぎた予約投稿を取得
     const { data: scheduledPosts, error: fetchError } = await supabaseAdmin
