@@ -60,6 +60,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/api/:path*'
+    '/api/:path((?!admin).*)*'  // /api/admin/* を除外
   ]
 };
