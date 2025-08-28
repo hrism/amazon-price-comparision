@@ -1,5 +1,17 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+
+// 管理者用のSupabaseクライアント（RLSを回避）
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
+);
 
 // 予約投稿を公開する処理
 export async function GET() {
@@ -7,7 +19,7 @@ export async function GET() {
     const now = new Date().toISOString();
     
     // 公開時刻を過ぎた予約投稿を取得
-    const { data: scheduledPosts, error: fetchError } = await supabase
+    const { data: scheduledPosts, error: fetchError } = await supabaseAdmin
       .from('blog_posts')
       .select('id, slug, title, published_at')
       .eq('status', 'scheduled')
@@ -24,7 +36,7 @@ export async function GET() {
     
     // ステータスをpublishedに更新
     const postIds = scheduledPosts.map(post => post.id);
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseAdmin
       .from('blog_posts')
       .update({ status: 'published' })
       .in('id', postIds);

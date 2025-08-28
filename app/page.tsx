@@ -7,6 +7,9 @@ import { calculateDishwashingScore } from '@/lib/scoring';
 import { calculateMineralWaterScore } from '@/lib/scoring';
 import { getAllPosts } from '@/lib/blog';
 
+// 1時間ごとに再生成
+export const revalidate = 3600;
+
 // 商品カード コンポーネント
 function ProductCard({ product, category }: { product: any; category: string }) {
   const formatPrice = (price: number | null | undefined) => {
