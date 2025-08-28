@@ -141,39 +141,63 @@ export default function NewPostPage() {
       console.log('Sending post data:', postData);
       console.log('Content length:', htmlContent.length);
 
-      const { data: post, error: postError } = await supabase
-        .from('blog_posts')
-        .insert(postData)
-        .select()
-        .single();
+      // 新しいAPIエンドポイントを使用（RLSを回避）
+      const response = await fetch('/api/admin/create-post', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...postData,
+          tag_ids: formData.tag_ids
+        })
+      });
 
-      if (postError) {
-        console.error('Supabase error:', postError);
-        throw postError;
-      }
+      const result = await response.json();
 
-      // タグの関連付け（エラーが出ても記事は保存済み）
-      if (formData.tag_ids.length > 0 && post) {
-        const tagRelations = formData.tag_ids.map(tagId => ({
-          post_id: post.id,
-          tag_id: tagId
-        }));
-
-        const { error: tagError } = await supabase
-          .from('blog_post_tags')
-          .insert(tagRelations);
-
-        if (tagError) {
-          console.error('Tag relation error:', tagError);
-          // タグのエラーは警告のみ（記事は保存済み）
-          alert('記事は保存されましたが、タグの設定でエラーが発生しました。\n記事の編集画面から再度タグを設定してください。');
-          router.push('/admin');
-          return;
+      if (!response.ok || !result.success) {
+        console.error('Failed to create post:', result);
+        
+        if (result.code === '42501') {
+          alert('権限エラー: ブログ記事を作成する権限がありません。\n管理者に連絡してください。');
+        } else {
+          alert(`記事の保存に失敗しました。\nエラー: ${result.error}\nコード: ${result.code || 'N/A'}\n詳細: ${result.details || 'なし'}`);
         }
+        
+        // エラー時はフォームをクリアしない（再試行可能にする）
+        setLoading(false);
+        return;
+      }
+      
+      const post = result.post;
+      
+      if (!post) {
+        alert('記事の保存に失敗しました。データが返されませんでした。');
+        setLoading(false);
+        return;
       }
 
-      alert('記事を保存しました');
-      router.push('/admin');
+      // 成功時はフォームを完全にクリア
+      setFormData({
+        title: '',
+        slug: '',
+        content: '',
+        excerpt: '',
+        featured_image: '',
+        status: 'draft',
+        meta_title: '',
+        meta_description: '',
+        meta_keywords: '',
+        category_id: '',
+        tag_ids: [],
+        published_at: '',
+      });
+      
+      // 成功メッセージ
+      alert(`記事を保存しました\nID: ${post.id}\nSlug: ${post.slug}`);
+      
+      // 確実にページ遷移（キャッシュを防ぐ）
+      window.location.href = '/admin';
     } catch (error: any) {
       console.error('Error saving post:', error);
       

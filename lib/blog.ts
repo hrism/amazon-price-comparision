@@ -175,16 +175,29 @@ export async function getBlogPosts(params?: {
 export async function getBlogPost(slug: string) {
   const now = new Date().toISOString();
   
-  // まず記事本体を取得
-  const { data: post, error } = await supabase
+  console.log('Fetching blog post with slug:', slug);
+  
+  // まず記事本体を取得（複数ある場合も考慮）
+  const { data: posts, error } = await supabase
     .from('blog_posts')
     .select(`
       *,
       category:blog_categories(*)
     `)
-    .eq('slug', slug)
-    .or(`status.eq.published,and(status.eq.scheduled,published_at.lte.${now})`)
-    .single();
+    .eq('slug', slug);
+  
+  const post = posts?.[0];
+  
+  // 予約投稿のステータスを自動更新
+  if (post && post.status === 'scheduled' && post.published_at && new Date(post.published_at) <= new Date()) {
+    await supabase
+      .from('blog_posts')
+      .update({ status: 'published' })
+      .eq('id', post.id);
+    post.status = 'published';
+  }
+
+  console.log('Query result:', { post, error });
 
   if (error) {
     console.error('Error fetching blog post:', error);
