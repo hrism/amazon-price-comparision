@@ -218,22 +218,6 @@ export default function MineralWater() {
     return price < 1 ? `¥${price.toFixed(2)}` : `¥${price.toFixed(1)}`;
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 flex items-center justify-center">
-        <div className="text-lg">読み込み中...</div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 flex items-center justify-center">
-        <div className="text-red-600">エラー: {error}</div>
-      </div>
-    );
-  }
-
   return (
     <main className="min-h-screen bg-white py-4">
       <div className="container mx-auto px-4">
@@ -359,7 +343,7 @@ export default function MineralWater() {
             </div>
 
             <div className="space-y-3">
-              {sortedProducts.map((product, index) => {
+              {sortedProducts.slice(0, 30).map((product, index) => {
                 let totalScore;
                 try {
                   totalScore = calculateMineralWaterScore(product, filteredProducts, SCORE_WEIGHTS.QUALITY_FOCUSED.review, SCORE_WEIGHTS.QUALITY_FOCUSED.price);

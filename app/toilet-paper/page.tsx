@@ -313,7 +313,7 @@ export default function Home() {
             </div>
 
             <div className="space-y-3">
-              {sortedProducts.map((product, index) => {
+              {sortedProducts.slice(0, 30).map((product, index) => {
                 let totalScore;
                 try {
                   totalScore = calculateToiletPaperScore(product, filteredByReview, SCORE_WEIGHTS.QUALITY_FOCUSED.review, SCORE_WEIGHTS.QUALITY_FOCUSED.price);

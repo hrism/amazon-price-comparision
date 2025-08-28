@@ -66,8 +66,8 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      data,
-      last_updated: lastUpdated,
+      products: data || [],
+      lastUpdate: lastUpdated,
       count: data?.length || 0
     });
   } catch (error) {

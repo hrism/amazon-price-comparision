@@ -51,7 +51,7 @@ export default function ProductCard<T extends BaseProduct>({
     return `¥${price.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
   };
 
-  const isTopRanked = index < 3 && (sortBy === 'price_per_m' || sortBy === 'price_per_1000ml' || sortBy === 'total_score');
+  const isTopRanked = index < 3 && (sortBy === 'price_per_m' || sortBy === 'price_per_1000ml' || sortBy === 'price_per_liter' || sortBy === 'total_score');
 
   return (
     <div className="bg-white border border-[#D5D9D9] rounded-2xl p-4 relative hover:shadow-md transition-shadow">
