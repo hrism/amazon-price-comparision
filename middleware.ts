@@ -13,7 +13,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(newUrl, 301);
   }
   
-  // CSRF Protection for API routes
+  // CSRF Protection for API routes (excluding Supabase direct calls)
   if (request.nextUrl.pathname.startsWith('/api/')) {
     // Skip CSRF check for GET requests and test endpoints
     if (request.method === 'GET' || request.nextUrl.pathname === '/api/test') {
@@ -60,7 +60,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/api/:path*',
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/api/:path*'
   ]
 };
