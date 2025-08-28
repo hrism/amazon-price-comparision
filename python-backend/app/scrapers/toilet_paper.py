@@ -116,5 +116,10 @@ class ToiletPaperScraper(BaseScraper):
         )
     
     async def save_products(self, products: List[Dict[str, Any]]) -> None:
-        """トイレットペーパー商品を保存"""
-        await self.db.upsert_products(products)
+        """トイレットペーパー商品を保存（総合スコア計算含む）"""
+        # 総合スコアを計算
+        from app.utils.score_calculator import calculate_all_scores
+        products_with_scores = calculate_all_scores(products, 'price_per_m')
+        
+        # データベースに保存
+        await self.db.upsert_products(products_with_scores)

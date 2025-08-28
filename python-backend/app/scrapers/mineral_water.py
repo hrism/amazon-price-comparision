@@ -62,10 +62,15 @@ class MineralWaterScraper(BaseScraper):
         return product
     
     async def save_products(self, products: List[Dict[str, Any]]) -> None:
-        """商品データを保存する"""
+        """商品データを保存する（総合スコア計算含む）"""
+        # 総合スコアを計算
+        from app.utils.score_calculator import calculate_all_scores
+        products_with_scores = calculate_all_scores(products, 'price_per_liter')
+        
+        # データベースに保存
         from .mineral_water_scraper import save_mineral_water_to_db
-        if products:
-            save_mineral_water_to_db(products)
+        if products_with_scores:
+            save_mineral_water_to_db(products_with_scores)
     
     async def get_cached_products(self, filter: Optional[str] = None) -> List[Dict[str, Any]]:
         """キャッシュされた商品を取得する"""
