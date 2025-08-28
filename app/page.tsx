@@ -2,10 +2,8 @@ import Link from 'next/link';
 import { getToiletPaperProducts } from '@/lib/products/toilet-paper';
 import { getDishwashingProducts } from '@/lib/products/dishwashing-liquid';
 import { getMineralWaterProducts } from '@/lib/products/mineral-water';
-import { calculateScore } from '@/lib/scoring';
-import { calculateDishwashingScore } from '@/lib/scoring';
-import { calculateMineralWaterScore } from '@/lib/scoring';
 import { getAllPosts } from '@/lib/blog';
+import { addScoresToProducts, sortByScore, sortByUnitPrice, getUnitPrice, getUnitPriceLabel } from '@/lib/product-utils';
 
 // 1時間ごとに再生成
 export const revalidate = 3600;
@@ -17,25 +15,7 @@ function ProductCard({ product, category }: { product: any; category: string }) 
     return `¥${price.toLocaleString()}`;
   };
 
-  const getUnitPriceLabel = (category: string) => {
-    switch(category) {
-      case 'toilet-paper': return '/m';
-      case 'dishwashing-liquid': return '/L';
-      case 'mineral-water': return '/L';
-      default: return '';
-    }
-  };
-
-  const getUnitPrice = (product: any, category: string) => {
-    switch(category) {
-      case 'toilet-paper': return product.price_per_m;
-      case 'dishwashing-liquid': return product.price_per_1000ml;
-      case 'mineral-water': return product.price_per_liter;
-      default: return null;
-    }
-  };
-
-  const unitPrice = getUnitPrice(product, category);
+  const unitPrice = getUnitPrice(product, category as any);
 
   return (
     <Link href={`https://www.amazon.co.jp/dp/${product.asin}?tag=${process.env.NEXT_PUBLIC_AMAZON_PARTNER_TAG || 'electlicdista-22'}`} target="_blank" rel="noopener noreferrer">
@@ -51,7 +31,7 @@ function ProductCard({ product, category }: { product: any; category: string }) 
             <div className="mt-1 flex items-baseline gap-2">
               {unitPrice && (
                 <span className="text-lg font-bold text-[#B12704]">
-                  {formatPrice(unitPrice)}<span className="text-sm">{getUnitPriceLabel(category)}</span>
+                  {formatPrice(unitPrice)}<span className="text-sm">{getUnitPriceLabel(category as any)}</span>
                 </span>
               )}
               <span className="text-sm text-gray-600">({formatPrice(product.price)})</span>
@@ -90,50 +70,20 @@ export default async function Home() {
   // ダブルのトイレットペーパーのみフィルタリング
   const doubleToiletPaper = toiletPaperProducts.filter((p: any) => p.is_double === true);
 
-  // スコア計算
-  const toiletPaperWithScores = doubleToiletPaper.map((product: any) => ({
-    ...product,
-    score: calculateScore(product, doubleToiletPaper)
-  }));
-
-  const dishwashingWithScores = dishwashingProducts.map((product: any) => ({
-    ...product,
-    score: calculateDishwashingScore(product, dishwashingProducts)
-  }));
-
-  const mineralWaterWithScores = mineralWaterProducts.map((product: any) => ({
-    ...product,
-    score: calculateMineralWaterScore(product, mineralWaterProducts)
-  }));
+  // スコア計算（商材ページと同じ重みを使用: レビュー70%, 価格30%）
+  const toiletPaperWithScores = addScoresToProducts(doubleToiletPaper, 'toilet-paper');
+  const dishwashingWithScores = addScoresToProducts(dishwashingProducts, 'dishwashing-liquid');
+  const mineralWaterWithScores = addScoresToProducts(mineralWaterProducts, 'mineral-water');
 
   // 総合評価TOP3（ダブルのみ）
-  const toiletPaperTop3 = [...toiletPaperWithScores]
-    .sort((a, b) => (b.score || 0) - (a.score || 0))
-    .slice(0, 3);
-
-  const dishwashingTop3 = [...dishwashingWithScores]
-    .sort((a, b) => (b.score || 0) - (a.score || 0))
-    .slice(0, 3);
-
-  const mineralWaterTop3 = [...mineralWaterWithScores]
-    .sort((a, b) => (b.score || 0) - (a.score || 0))
-    .slice(0, 3);
+  const toiletPaperTop3 = sortByScore(toiletPaperWithScores).slice(0, 3);
+  const dishwashingTop3 = sortByScore(dishwashingWithScores).slice(0, 3);
+  const mineralWaterTop3 = sortByScore(mineralWaterWithScores).slice(0, 3);
 
   // 単価TOP3（ダブルのみ）
-  const toiletPaperPriceTop3 = [...toiletPaperWithScores]
-    .filter(p => p.price_per_m)
-    .sort((a, b) => (a.price_per_m || 999999) - (b.price_per_m || 999999))
-    .slice(0, 3);
-
-  const dishwashingPriceTop3 = [...dishwashingWithScores]
-    .filter(p => p.price_per_1000ml)
-    .sort((a, b) => (a.price_per_1000ml || 999999) - (b.price_per_1000ml || 999999))
-    .slice(0, 3);
-
-  const mineralWaterPriceTop3 = [...mineralWaterWithScores]
-    .filter(p => p.price_per_liter)
-    .sort((a, b) => (a.price_per_liter || 999999) - (b.price_per_liter || 999999))
-    .slice(0, 3);
+  const toiletPaperPriceTop3 = sortByUnitPrice(toiletPaperWithScores.filter(p => p.price_per_m), 'toilet-paper').slice(0, 3);
+  const dishwashingPriceTop3 = sortByUnitPrice(dishwashingWithScores.filter(p => p.price_per_1000ml), 'dishwashing-liquid').slice(0, 3);
+  const mineralWaterPriceTop3 = sortByUnitPrice(mineralWaterWithScores.filter(p => p.price_per_liter), 'mineral-water').slice(0, 3);
 
   // 最新ブログ記事を取得
   const allPosts = await getAllPosts();
