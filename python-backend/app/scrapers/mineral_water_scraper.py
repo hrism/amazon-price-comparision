@@ -1,7 +1,7 @@
 import re
 import json
 from typing import Dict, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import asyncio
 import time
 from bs4 import BeautifulSoup
@@ -170,7 +170,7 @@ async def scrape_mineral_water(keyword: str = "ミネラルウォーター") -> 
                     'review_avg': review_avg if review_avg > 0 else None,
                     'review_count': review_count if review_count > 0 else None,
                     'brand': brand,
-                    'last_fetched_at': datetime.now().isoformat()
+                    'last_fetched_at': datetime.now(timezone.utc).isoformat()
                 }
                 
                 products.append(product)

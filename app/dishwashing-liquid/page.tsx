@@ -104,9 +104,8 @@ export default function DishwashingLiquid() {
         params.append('filter', filterType);
       }
 
-      // 統一APIエンドポイントを使用
-      params.append('type', 'dishwashing_liquid');
-      const apiUrl = '/api/products';
+      // dishwashing専用APIエンドポイントを使用
+      const apiUrl = '/api/dishwashing/search';
       const response = await fetch(`${apiUrl}?${params}`);
       if (!response.ok) {
         const errorText = await response.text();
@@ -139,7 +138,7 @@ export default function DishwashingLiquid() {
       const response = await fetch('/api/lambda-scrape', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           product_types: ['dishwashing_liquid'],
           force_scrape: true,
           scrape_token: process.env.NEXT_PUBLIC_SCRAPE_TOKEN
@@ -173,7 +172,7 @@ export default function DishwashingLiquid() {
     // 単価が取得できていない商品を除外（price_per_1000mlが有効な値を持つ）
     const hasValidPrice = product.price_per_1000ml && product.price_per_1000ml > 0;
     if (!hasValidPrice) return false;
-    
+
     // レビュースコアでフィルタリング
     if (minReviewScore === 0) return true;
     return (product.review_avg || 0) >= minReviewScore;
@@ -188,7 +187,7 @@ export default function DishwashingLiquid() {
       case 'discount_percent':
         return (b.discount_percent || 0) - (a.discount_percent || 0);
       case 'total_score':
-        // 総合評価スコアの計算（高い順）
+        // 総合点スコアの計算（高い順）
         const scoreA = calculateDishwashingScore(a, filteredByReview, SCORE_WEIGHTS.QUALITY_FOCUSED.review, SCORE_WEIGHTS.QUALITY_FOCUSED.price);
         const scoreB = calculateDishwashingScore(b, filteredByReview, SCORE_WEIGHTS.QUALITY_FOCUSED.review, SCORE_WEIGHTS.QUALITY_FOCUSED.price);
         return scoreB - scoreA; // 高い順
@@ -210,9 +209,9 @@ export default function DishwashingLiquid() {
           description="このページでは、Amazon.co.jpで販売されている食器用洗剤を「1000ml単価」で比較できます。詰め替え用と本体の価格差も一目瞭然。本当にお得な商品を見つけることができます。"
           tip="詰め替え用は環境にも優しく、多くの場合本体より単価が安くなっています。"
         />
-        
+
         {/* SNSシェアボタン */}
-        <ShareButtons 
+        <ShareButtons
           url="https://www.yasu-ku-kau.com/dishwashing-liquid"
           title="食器用洗剤の最安値を探す | 安く買う.com"
           description="Amazon内の食器用洗剤を1000ml単価で比較。詰め替え用と本体の価格差も一目瞭然！"
@@ -295,7 +294,7 @@ export default function DishwashingLiquid() {
                     onChange={(value) => setSortBy(value as SortKey)}
                     label={productLabels.sort.label}
                     options={[
-                      { value: 'total_score', label: '総合評価順' },
+                      { value: 'total_score', label: '総合点が高い順' },
                       { value: 'price_per_1000ml', label: dishwashingLiquidLabels.sort.pricePerLiter },
                       { value: 'price', label: dishwashingLiquidLabels.sort.price },
                       { value: 'discount_percent', label: dishwashingLiquidLabels.sort.discountPercent },
@@ -340,7 +339,7 @@ export default function DishwashingLiquid() {
                   console.error('Error calculating score for product:', product.asin, error);
                   totalScore = 0;
                 }
-                
+
                 return (
                   <ProductCard
                     key={product.asin}

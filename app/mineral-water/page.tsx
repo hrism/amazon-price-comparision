@@ -100,24 +100,26 @@ export default function MineralWater() {
         params.append('filter', filterType);
       }
 
-      // 統一APIエンドポイントを使用
-      params.append('type', 'mineral_water');
-      const apiUrl = '/api/products';
+      // mineral-water専用APIエンドポイントを使用
+      const apiUrl = '/api/mineral-water/search';
       const response = await fetch(`${apiUrl}?${params}`);
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('API Error:', errorText);
         throw new Error(`Failed to fetch: ${response.status}`);
       }
-      
+
       const data = await response.json();
       console.log('Fetched mineral water data:', { type: typeof data, length: Array.isArray(data) ? data.length : 'not array' });
+
+      // APIレスポンスがオブジェクトの場合はproductsプロパティを使用
+      const productsArray = Array.isArray(data) ? data : (data.products || []);
+      setProducts(productsArray);
       
-      setProducts(data || []);
       // 最新のlast_fetched_atを取得
-      if (data && data.length > 0) {
-        const latest = data.reduce((prev: any, current: any) => {
+      if (productsArray && productsArray.length > 0) {
+        const latest = productsArray.reduce((prev: any, current: any) => {
           const prevDate = new Date(prev.last_fetched_at || prev.updated_at || 0);
           const currentDate = new Date(current.last_fetched_at || current.updated_at || 0);
           return currentDate > prevDate ? current : prev;
@@ -185,7 +187,7 @@ export default function MineralWater() {
     // 単価が取得できていない商品を除外（price_per_literが有効な値を持つ）
     const hasValidPrice = product.price_per_liter && product.price_per_liter > 0;
     if (!hasValidPrice) return false;
-    
+
     // レビュースコアでフィルタリング
     if (minReviewScore === 0) return true;
     return (product.review_avg || 0) >= minReviewScore;
@@ -204,7 +206,7 @@ export default function MineralWater() {
       case 'discount_percent':
         return (b.discount_percent || 0) - (a.discount_percent || 0);
       case 'total_score':
-        // 総合評価スコアの計算（高い順）
+        // 総合点スコアの計算（高い順）
         const scoreA = calculateMineralWaterScore(a, filteredProducts, SCORE_WEIGHTS.QUALITY_FOCUSED.review, SCORE_WEIGHTS.QUALITY_FOCUSED.price);
         const scoreB = calculateMineralWaterScore(b, filteredProducts, SCORE_WEIGHTS.QUALITY_FOCUSED.review, SCORE_WEIGHTS.QUALITY_FOCUSED.price);
         return scoreB - scoreA; // 高い順
@@ -226,8 +228,8 @@ export default function MineralWater() {
           description="このページでは、Amazon.co.jpで販売されているミネラルウォーターを「1リットル単価」で比較できます。ケース買いでお得になる商品や、高評価のブランド商品まで幅広く比較できます。"
           tip="表示価格は自動更新されます。セール情報や割引率も一目で確認できるので、タイミングを逃さずお買い物できます。"
         />
-        
-        <ShareButtons 
+
+        <ShareButtons
           url="https://www.yasu-ku-kau.com/mineral-water"
           title="ミネラルウォーターの最安値を探す | 安く買う.com"
           description="Amazon内のミネラルウォーターを1リットル単価で比較。本当にお得な商品を見つけよう！"
@@ -310,13 +312,13 @@ export default function MineralWater() {
                     onChange={(value) => setSortBy(value as SortKey)}
                     label={productLabels.sort.label}
                     options={[
-                      { value: 'total_score', label: '総合評価順' },
+                      { value: 'total_score', label: '総合点が高い順' },
                       { value: 'price_per_liter', label: '1Lあたり価格' },
                       { value: 'price', label: '価格' },
                       { value: 'discount_percent', label: '割引率' },
                     ]}
                   />
-                  
+
                   <div>
                     <label className="block text-[11px] font-normal text-[#565959] mb-1">
                       {productLabels.filter.label}
@@ -355,7 +357,7 @@ export default function MineralWater() {
                   console.error('Error calculating score for product:', product.asin, error);
                   totalScore = 0;
                 }
-                
+
                 return (
                   <ProductCard
                     key={product.asin}

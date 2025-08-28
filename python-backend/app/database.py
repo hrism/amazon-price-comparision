@@ -211,7 +211,11 @@ class Database:
             current_time = datetime.utcnow().isoformat()
             
             for product in products:
-                product_dict = product.dict()
+                # Pydanticモデルまたは辞書に対応
+                if hasattr(product, 'dict'):
+                    product_dict = product.dict()
+                else:
+                    product_dict = product
                 
                 # 全フィールドを統一（不足フィールドはデフォルト値を設定）
                 standardized_dict = {}
@@ -314,3 +318,23 @@ class Database:
             print(f"Deleted product: {asin}")
         except Exception as e:
             print(f"Error deleting product {asin}: {str(e)}")
+    
+    async def save_rice_products(self, products: List[Dict[str, Any]]) -> None:
+        """米商品をデータベースに保存"""
+        if not self.enabled or not products:
+            return
+            
+        try:
+            from datetime import datetime, timezone
+            current_time = datetime.now(timezone.utc).isoformat()
+            
+            # 各商品にタイムスタンプを追加
+            for product in products:
+                product['last_fetched_at'] = current_time
+            
+            # rice_productsテーブルに保存（upsert）
+            response = self.supabase.table('rice_products').upsert(products, on_conflict='asin').execute()
+            print(f"Saved {len(products)} rice products to database")
+            
+        except Exception as e:
+            print(f"Error saving rice products: {str(e)}")

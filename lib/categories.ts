@@ -14,6 +14,32 @@ export interface Category {
 
 export const categories: Category[] = [
   {
+    id: 'rice',
+    name: '米',
+    title: '米',
+    description: '1kgあたりで比較。精米・無洗米を厳選。Amazon Fresh対応。',
+    href: '/rice',
+    icon: '🍚',
+    available: true,
+    stats: {
+      products: '80+',
+      updated: '毎日更新'
+    }
+  },
+  {
+    id: 'mineral-water',
+    name: 'ミネラルウォーター',
+    title: 'ミネラルウォーター',
+    description: '1リットルあたりで比較。ケース買いでお得に。',
+    href: '/mineral-water',
+    icon: '💧',
+    available: true,
+    stats: {
+      products: '40+',
+      updated: '毎日更新'
+    }
+  },
+  {
     id: 'toilet-paper',
     name: 'トイレットペーパー',
     title: 'トイレットペーパー',
@@ -36,19 +62,6 @@ export const categories: Category[] = [
     available: true,
     stats: {
       products: '30+',
-      updated: '毎日更新'
-    }
-  },
-  {
-    id: 'mineral-water',
-    name: 'ミネラルウォーター',
-    title: 'ミネラルウォーター',
-    description: '1リットルあたりで比較。ケース買いでお得に。',
-    href: '/mineral-water',
-    icon: '💧',
-    available: true,
-    stats: {
-      products: '40+',
       updated: '毎日更新'
     }
   },

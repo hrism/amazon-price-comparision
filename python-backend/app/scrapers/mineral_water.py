@@ -13,12 +13,12 @@ class MineralWaterScraper(BaseScraper):
     
     async def get_existing_products(self) -> Dict[str, Any]:
         """既存の商品データを取得"""
-        result = self.db.table("mineral_water_products").select("*").execute()
+        result = self.db.supabase.table("mineral_water_products").select("*").execute()
         return {p['asin']: p for p in (result.data or [])}
     
     async def process_product(self, product: Dict[str, Any], existing_products: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """商品データを処理する"""
-        from ..prompts.mineral_water import parse_mineral_water_info
+        from ..services.gpt_parser import parse_mineral_water_info
         
         asin = product['asin']
         existing = existing_products.get(asin)
@@ -39,7 +39,7 @@ class MineralWaterScraper(BaseScraper):
             title = product.get('title', '')
             
             if title and description:
-                extracted = await parse_mineral_water_info(title, description)
+                extracted = parse_mineral_water_info(title, description)
                 if extracted:
                     product.update(extracted)
         else:
@@ -83,7 +83,7 @@ class MineralWaterScraper(BaseScraper):
         
         one_hour_ago = datetime.datetime.now(timezone.utc) - datetime.timedelta(hours=1)
         
-        query = self.db.table("mineral_water_products").select("*")
+        query = self.db.supabase.table("mineral_water_products").select("*")
         
         # last_fetched_atが1時間以内のデータを確認
         result = query.execute()

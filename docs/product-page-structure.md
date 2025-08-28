@@ -11,10 +11,10 @@
   <div className="container mx-auto px-4">
     {/* 1. ヘッダー */}
     <ProductPageHeader />
-    
+
     {/* 2. SNSシェアボタン */}
     <ShareButtons />
-    
+
     {/* 3. ローディング中はスケルトンローダー */}
     {loading ? (
       <SkeletonLoader />
@@ -23,10 +23,10 @@
     ) : (
       <ProductList />
     )}
-    
+
     {/* 4. カテゴリ別ブログセクション */}
     <CategoryBlogSection />
-    
+
     {/* 5. 他カテゴリへのリンク */}
     <CategoryGrid />
   </div>
@@ -164,7 +164,7 @@ useEffect(() => {
       setLoading(false);
     }
   };
-  
+
   fetchProducts();
 }, []);
 ```
@@ -197,13 +197,13 @@ useEffect(() => {
 
 ### ランキングバッジ
 **1位・2位・3位表示**: ソート順で上位3件には順位バッジを表示
-- 表示条件: 単価順または総合評価順でソートされている場合のみ
+- 表示条件: 単価順または総合点が高い順でソートされている場合のみ
 - ProductCardコンポーネントが自動判定して表示
 - 対応するソートキー:
   - `price_per_m` (トイレットペーパー)
   - `price_per_1000ml` (食器用洗剤)
   - `price_per_liter` (ミネラルウォーター)
-  - `total_score` (総合評価)
+  - `total_score` (総合点)
 
 ## 新規商品ページ追加時のチェックリスト
 

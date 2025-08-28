@@ -51,7 +51,7 @@ export default function ProductCard<T extends BaseProduct>({
     return `¥${price.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
   };
 
-  const isTopRanked = index < 3 && (sortBy === 'price_per_m' || sortBy === 'price_per_1000ml' || sortBy === 'price_per_liter' || sortBy === 'total_score');
+  const isTopRanked = index < 3 && (sortBy === 'price_per_m' || sortBy === 'price_per_1000ml' || sortBy === 'price_per_liter' || sortBy === 'price_per_kg' || sortBy === 'total_score');
 
   return (
     <div className="bg-white border border-[#D5D9D9] rounded-2xl p-4 relative hover:shadow-md transition-shadow">
@@ -123,7 +123,7 @@ export default function ProductCard<T extends BaseProduct>({
                   {formatPrice(product.price_regular)}
                 </p>
               )}
-              {product.discount_percent && (
+              {product.discount_percent && product.discount_percent > 0 && (
                 <p className="text-[12px] text-[#CC0C39] font-normal">
                   {product.discount_percent}% {productLabels.product.discount}
                 </p>

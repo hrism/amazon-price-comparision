@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getToiletPaperProducts } from '@/lib/products/toilet-paper';
 import { getDishwashingProducts } from '@/lib/products/dishwashing-liquid';
 import { getMineralWaterProducts } from '@/lib/products/mineral-water';
+import { getRiceProducts } from '@/lib/products/rice';
 import { getAllPosts } from '@/lib/blog';
 import { addScoresToProducts, sortByScore, sortByUnitPrice, getUnitPrice, getUnitPriceLabel } from '@/lib/product-utils';
 
@@ -61,10 +62,11 @@ function ProductCard({ product, category }: { product: any; category: string }) 
 
 export default async function Home() {
   // 各カテゴリの商品データを取得
-  const [toiletPaperProducts, dishwashingProducts, mineralWaterProducts] = await Promise.all([
+  const [toiletPaperProducts, dishwashingProducts, mineralWaterProducts, riceProducts] = await Promise.all([
     getToiletPaperProducts(),
     getDishwashingProducts(),
-    getMineralWaterProducts()
+    getMineralWaterProducts(),
+    getRiceProducts()
   ]);
 
   // ダブルのトイレットペーパーのみフィルタリング
@@ -74,22 +76,43 @@ export default async function Home() {
   const toiletPaperWithScores = addScoresToProducts(doubleToiletPaper, 'toilet-paper');
   const dishwashingWithScores = addScoresToProducts(dishwashingProducts, 'dishwashing-liquid');
   const mineralWaterWithScores = addScoresToProducts(mineralWaterProducts, 'mineral-water');
+  const riceWithScores = addScoresToProducts(riceProducts, 'rice');
 
-  // 総合評価TOP3（ダブルのみ）
+  // 総合点TOP3（ダブルのみ）
   const toiletPaperTop3 = sortByScore(toiletPaperWithScores).slice(0, 3);
   const dishwashingTop3 = sortByScore(dishwashingWithScores).slice(0, 3);
   const mineralWaterTop3 = sortByScore(mineralWaterWithScores).slice(0, 3);
+  const riceTop3 = sortByScore(riceWithScores).slice(0, 3);
 
   // 単価TOP3（ダブルのみ）
   const toiletPaperPriceTop3 = sortByUnitPrice(toiletPaperWithScores.filter(p => p.price_per_m), 'toilet-paper').slice(0, 3);
   const dishwashingPriceTop3 = sortByUnitPrice(dishwashingWithScores.filter(p => p.price_per_1000ml), 'dishwashing-liquid').slice(0, 3);
   const mineralWaterPriceTop3 = sortByUnitPrice(mineralWaterWithScores.filter(p => p.price_per_liter), 'mineral-water').slice(0, 3);
+  const ricePriceTop3 = sortByUnitPrice(riceWithScores.filter(p => p.price_per_kg), 'rice').slice(0, 3);
 
   // 最新ブログ記事を取得
   const allPosts = await getAllPosts();
   const latestPosts = allPosts.slice(0, 3);
 
   const categories = [
+    {
+      name: '米',
+      slug: 'rice',
+      icon: '🍚',
+      href: '/rice',
+      scoreTop3: riceTop3,
+      priceTop3: ricePriceTop3,
+      productCount: riceProducts.length
+    },
+    {
+      name: 'ミネラルウォーター',
+      slug: 'mineral-water',
+      icon: '💧',
+      href: '/mineral-water',
+      scoreTop3: mineralWaterTop3,
+      priceTop3: mineralWaterPriceTop3,
+      productCount: mineralWaterProducts.length
+    },
     {
       name: 'トイレットペーパー',
       slug: 'toilet-paper',
@@ -107,15 +130,6 @@ export default async function Home() {
       scoreTop3: dishwashingTop3,
       priceTop3: dishwashingPriceTop3,
       productCount: dishwashingProducts.length
-    },
-    {
-      name: 'ミネラルウォーター',
-      slug: 'mineral-water',
-      icon: '💧',
-      href: '/mineral-water',
-      scoreTop3: mineralWaterTop3,
-      priceTop3: mineralWaterPriceTop3,
-      productCount: mineralWaterProducts.length
     }
   ];
 
@@ -136,9 +150,10 @@ export default async function Home() {
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="flex flex-wrap items-center gap-3 md:gap-6 py-3 text-xs md:text-sm">
             <Link href="/" className="hover:text-yellow-400 whitespace-nowrap">🏠 ホーム</Link>
+            <Link href="/rice" className="hover:text-yellow-400 whitespace-nowrap">🍚 米</Link>
+            <Link href="/mineral-water" className="hover:text-yellow-400 whitespace-nowrap">💧 ミネラルウォーター</Link>
             <Link href="/toilet-paper" className="hover:text-yellow-400 whitespace-nowrap">🧻 トイレットペーパー</Link>
             <Link href="/dishwashing-liquid" className="hover:text-yellow-400 whitespace-nowrap">🧽 食器用洗剤</Link>
-            <Link href="/mineral-water" className="hover:text-yellow-400 whitespace-nowrap">💧 ミネラルウォーター</Link>
             <Link href="/blog" className="hover:text-yellow-400 whitespace-nowrap">📝 ブログ</Link>
           </div>
         </div>
@@ -174,11 +189,11 @@ export default async function Home() {
                 </div>
               </div>
 
-              {/* 総合評価TOP3 */}
+              {/* 総合点TOP3 */}
               <div>
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                   <span className="text-yellow-500">⭐</span>
-                  総合評価 TOP3
+                  総合点 TOP3
                 </h3>
                 <div className="space-y-3">
                   {category.scoreTop3.map((product, index) => (

@@ -3,12 +3,14 @@ from .base import BaseScraper
 from .toilet_paper import ToiletPaperScraper
 from .dishwashing import DishwashingScraper
 from .mineral_water import MineralWaterScraper
+from .rice import RiceScraper
 
 # スクレイパーレジストリ
 SCRAPER_REGISTRY: Dict[str, Type[BaseScraper]] = {
     "toilet_paper": ToiletPaperScraper,
     "dishwashing_liquid": DishwashingScraper,
     "mineral_water": MineralWaterScraper,
+    "rice": RiceScraper,
     # 新しい商品タイプはここに追加
     # "tissues": TissueScraper,
     # "paper_towels": PaperTowelScraper,

@@ -123,7 +123,7 @@ export default function Home() {
       const response = await fetch('/api/lambda-scrape', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           product_types: ['toilet_paper'],
           force_scrape: true,
           scrape_token: process.env.NEXT_PUBLIC_SCRAPE_TOKEN
@@ -155,10 +155,10 @@ export default function Home() {
   // レビュースコアと単価データでフィルタリング
   const filteredByReview = products.filter(product => {
     // 単価が取得できていない商品を除外（price_per_mまたはprice_per_rollが有効な値を持つ）
-    const hasValidPrice = (product.price_per_m && product.price_per_m > 0) || 
+    const hasValidPrice = (product.price_per_m && product.price_per_m > 0) ||
                          (product.price_per_roll && product.price_per_roll > 0);
     if (!hasValidPrice) return false;
-    
+
     // レビュースコアでフィルタリング
     if (minReviewScore === 0) return true;
     return (product.review_avg || 0) >= minReviewScore;
@@ -173,7 +173,7 @@ export default function Home() {
       case 'discount_percent':
         return (b.discount_percent || 0) - (a.discount_percent || 0);
       case 'total_score':
-        // 総合評価スコアの計算（高い順）
+        // 総合点スコアの計算（高い順）
         const scoreA = calculateToiletPaperScore(a, filteredByReview, SCORE_WEIGHTS.QUALITY_FOCUSED.review, SCORE_WEIGHTS.QUALITY_FOCUSED.price);
         const scoreB = calculateToiletPaperScore(b, filteredByReview, SCORE_WEIGHTS.QUALITY_FOCUSED.review, SCORE_WEIGHTS.QUALITY_FOCUSED.price);
         return scoreB - scoreA; // 高い順
@@ -195,9 +195,9 @@ export default function Home() {
           description="このページでは、Amazon.co.jpで販売されているトイレットペーパーを「1メートル単価」で比較できます。2倍巻き・3倍巻きなどの長巻きタイプも正確に計算し、本当にお得な商品を見つけることができます。"
           tip="表示価格は自動更新されます。セール情報や割引率も一目で確認できるので、タイミングを逃さずお買い物できます。"
         />
-        
+
         {/* SNSシェアボタン */}
-        <ShareButtons 
+        <ShareButtons
           url="https://www.yasu-ku-kau.com/toilet-paper"
           title="トイレットペーパーの最安値を探す | 安く買う.com"
           description="Amazon内のトイレットペーパーを1メートル単価で比較。本当にお得な商品を見つけよう！"
@@ -280,7 +280,7 @@ export default function Home() {
                     onChange={(value) => setSortBy(value as SortKey)}
                     label={productLabels.sort.label}
                     options={[
-                      { value: 'total_score', label: '総合評価順' },
+                      { value: 'total_score', label: '総合点が高い順' },
                       { value: 'price_per_m', label: toiletPaperLabels.sort.pricePerMeter },
                       { value: 'price_per_roll', label: toiletPaperLabels.sort.pricePerRoll },
                       { value: 'discount_percent', label: toiletPaperLabels.sort.discountPercent },
@@ -325,7 +325,7 @@ export default function Home() {
                   console.error('Error calculating score for product:', product.asin, error);
                   totalScore = 0;
                 }
-                
+
                 return (
                   <ProductCard
                     key={product.asin}

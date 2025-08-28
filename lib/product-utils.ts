@@ -1,11 +1,12 @@
-import { 
-  calculateToiletPaperScore, 
-  calculateDishwashingScore, 
+import {
+  calculateToiletPaperScore,
+  calculateDishwashingScore,
   calculateMineralWaterScore,
-  SCORE_WEIGHTS 
+  calculateRiceScore,
+  SCORE_WEIGHTS
 } from './scoring';
 
-export type ProductCategory = 'toilet-paper' | 'dishwashing-liquid' | 'mineral-water';
+export type ProductCategory = 'toilet-paper' | 'dishwashing-liquid' | 'mineral-water' | 'rice';
 
 /**
  * 商品リストにスコアを追加する共通関数
@@ -19,10 +20,10 @@ export function addScoresToProducts(
   scoreWeights = SCORE_WEIGHTS.QUALITY_FOCUSED
 ): any[] {
   const { review: reviewWeight, price: priceWeight } = scoreWeights;
-  
+
   return products.map(product => {
     let score: number;
-    
+
     switch (category) {
       case 'toilet-paper':
         score = calculateToiletPaperScore(product, products, reviewWeight, priceWeight);
@@ -33,10 +34,13 @@ export function addScoresToProducts(
       case 'mineral-water':
         score = calculateMineralWaterScore(product, products, reviewWeight, priceWeight);
         break;
+      case 'rice':
+        score = calculateRiceScore(product, products, reviewWeight, priceWeight);
+        break;
       default:
         score = 0;
     }
-    
+
     return {
       ...product,
       score
@@ -45,7 +49,7 @@ export function addScoresToProducts(
 }
 
 /**
- * 商品を総合評価順にソートする
+ * 商品を総合点が高い順にソートする
  */
 export function sortByScore<T extends { score?: number }>(products: T[]): T[] {
   return [...products].sort((a, b) => (b.score || 0) - (a.score || 0));
@@ -54,7 +58,7 @@ export function sortByScore<T extends { score?: number }>(products: T[]): T[] {
 /**
  * 商品を単価順にソートする
  */
-export function sortByUnitPrice<T extends { price_per_m?: number; price_per_1000ml?: number; price_per_liter?: number }>(
+export function sortByUnitPrice<T extends { price_per_m?: number; price_per_1000ml?: number; price_per_liter?: number; price_per_kg?: number }>(
   products: T[],
   category: ProductCategory
 ): T[] {
@@ -67,11 +71,13 @@ export function sortByUnitPrice<T extends { price_per_m?: number; price_per_1000
           return product.price_per_1000ml || 999999;
         case 'mineral-water':
           return product.price_per_liter || 999999;
+        case 'rice':
+          return product.price_per_kg || 999999;
         default:
           return 999999;
       }
     };
-    
+
     return getPrice(a) - getPrice(b);
   });
 }
@@ -90,6 +96,8 @@ export function getUnitPrice(
       return product.price_per_1000ml || null;
     case 'mineral-water':
       return product.price_per_liter || null;
+    case 'rice':
+      return product.price_per_kg || null;
     default:
       return null;
   }
@@ -106,6 +114,8 @@ export function getUnitPriceLabel(category: ProductCategory): string {
       return '/L';
     case 'mineral-water':
       return '/L';
+    case 'rice':
+      return '/kg';
     default:
       return '';
   }

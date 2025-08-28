@@ -18,8 +18,8 @@ interface BlogPost {
 }
 
 interface CategoryBlogSectionProps {
-  categorySlug: 'toilet-paper' | 'dishwashing-liquid' | 'mineral-water';
-  categoryName: string;
+  categorySlug: 'toilet-paper' | 'dishwashing-liquid' | 'mineral-water' | 'rice';
+  categoryName?: string;
 }
 
 export default function CategoryBlogSection({ categorySlug, categoryName }: CategoryBlogSectionProps) {

@@ -20,12 +20,8 @@ export async function GET(request: NextRequest) {
     const supabase = createClient(supabaseUrl, supabaseKey);
     
     const searchParams = request.nextUrl.searchParams;
-    const keyword = searchParams.get('keyword');
+    const keyword = searchParams.get('keyword') || '食器用洗剤';
     const filter = searchParams.get('filter'); // refill, regular, sale
-
-    if (!keyword) {
-      return NextResponse.json({ error: 'Keyword is required' }, { status: 400 });
-    }
 
     // Supabaseから洗剤データを取得
     let query = supabase

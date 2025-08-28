@@ -659,6 +659,10 @@ async def search_dishwashing_products(
 from app.endpoints.mineral_water import router as mineral_water_router
 app.include_router(mineral_water_router)
 
+# 米エンドポイントを追加
+from app.endpoints.rice import router as rice_router
+app.include_router(rice_router)
+
 @app.on_event("shutdown")
 async def shutdown_event():
     await scraper.close()
