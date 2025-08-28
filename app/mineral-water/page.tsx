@@ -343,7 +343,7 @@ export default function MineralWater() {
             </div>
 
             <div className="space-y-3">
-              {sortedProducts.slice(0, 30).map((product, index) => {
+              {sortedProducts.slice(0, 20).map((product, index) => {
                 let totalScore;
                 try {
                   totalScore = calculateMineralWaterScore(product, filteredProducts, SCORE_WEIGHTS.QUALITY_FOCUSED.review, SCORE_WEIGHTS.QUALITY_FOCUSED.price);

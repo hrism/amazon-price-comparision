@@ -148,10 +148,12 @@ export default async function Home() {
         {/* カテゴリ別ランキング */}
         {categories.map((category) => (
           <div key={category.slug} className="mb-12">
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2 mb-2">
-              <span className="text-3xl">{category.icon}</span>
-              {category.name}
-            </h2>
+            <Link href={category.href} className="group inline-block mb-2">
+              <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2 group-hover:text-blue-600 transition-colors">
+                <span className="text-3xl">{category.icon}</span>
+                {category.name}
+              </h2>
+            </Link>
 
             <div className="grid md:grid-cols-2 gap-8">
               {/* 単価TOP3 */}
