@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { GoogleTagManager, GoogleTagManagerNoscript } from '@/components/GoogleTagManager'
 import { SpeedInsights } from "@vercel/speed-insights/next"
+import Footer from '@/components/Footer'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -75,7 +76,12 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <GoogleTagManagerNoscript />
-        {children}
+        <div className="min-h-screen flex flex-col">
+          <main className="flex-grow">
+            {children}
+          </main>
+          <Footer />
+        </div>
       </body>
     </html>
   )

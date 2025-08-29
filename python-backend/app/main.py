@@ -117,6 +117,34 @@ async def scrape_all_products(
         # 成功した商品数を計算
         total_success = sum(r["count"] for r in results.values() if r["status"] == "success")
         
+        # Vercelのキャッシュを再検証
+        if total_success > 0:
+            try:
+                import aiohttp
+                import asyncio
+                
+                # 環境変数からVercel URLを取得
+                vercel_url = os.getenv('VERCEL_URL', 'https://amazon-price-comparision.vercel.app')
+                if not vercel_url.startswith('http'):
+                    vercel_url = f'https://{vercel_url}'
+                
+                # revalidate APIを呼び出し
+                revalidate_url = f"{vercel_url}/api/revalidate"
+                paths = "/rice,/mineral-water,/,/toilet-paper,/dishwashing-liquid,/api/rice/search,/api/mineral-water/search,/api/dishwashing/search,/api/search"
+                
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(
+                        revalidate_url,
+                        params={"paths": paths},
+                        timeout=aiohttp.ClientTimeout(total=10)
+                    ) as response:
+                        revalidate_result = await response.text()
+                        print(f"Vercel cache revalidation triggered: {response.status} - {revalidate_result}")
+                
+            except Exception as e:
+                print(f"Failed to revalidate Vercel cache: {str(e)}")
+                # キャッシュ再検証の失敗はメインの処理には影響させない
+        
         return {
             "success": all(r["status"] == "success" for r in results.values()),
             "total_products": total_success,
