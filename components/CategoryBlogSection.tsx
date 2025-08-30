@@ -33,7 +33,7 @@ export default function CategoryBlogSection({ categorySlug, categoryName }: Cate
   const fetchBlogPosts = async () => {
     try {
       // カテゴリIDをスラッグから直接マッピング
-      const categoryId = categorySlug === 'toilet-paper' ? 1 : 
+      const categoryId = categorySlug === 'toilet-paper' ? 1 :
                         categorySlug === 'dishwashing-liquid' ? 2 : 3;
 
       // 該当カテゴリのブログ記事を取得
@@ -92,49 +92,49 @@ export default function CategoryBlogSection({ categorySlug, categoryName }: Cate
   }
 
   return (
-    <div className="bg-[#F7F8FA] border border-[#D5D9D9] rounded-2xl p-6 mb-8">
+    <div className="bg-[#F7F8FA] border border-[#D5D9D9] rounded-2xl p-6 my-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
         <h2 className="text-[18px] font-normal text-[#0F1111]">
           📝 {categoryName}に関する記事
         </h2>
-        <a 
+        <a
           href={`/blog/category/${categorySlug}`}
           className="text-[13px] text-[#007185] hover:text-[#C7511F] hover:underline inline-block"
         >
           すべて見る →
         </a>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {posts.map((post) => (
-          <a 
-            key={post.id} 
-            href={`/blog/${post.slug}`} 
+          <a
+            key={post.id}
+            href={`/blog/${post.slug}`}
             className="block bg-white rounded-lg border border-[#E3E6E6] hover:shadow-md hover:border-[#C7511F] transition-all p-3"
           >
             <article>
               {post.featured_image && (
                 <div className="w-full h-40 mb-3">
-                  <img 
-                    src={post.featured_image} 
+                  <img
+                    src={post.featured_image}
                     alt={post.title}
                     className="w-full h-full object-cover rounded"
                     loading="lazy"
                   />
                 </div>
               )}
-              
+
               <div>
                 <h3 className="text-[14px] sm:text-[15px] font-medium text-[#0F1111] mb-2 line-clamp-2">
                   {post.title}
                 </h3>
-                
+
                 {post.excerpt && (
                   <p className="text-[12px] sm:text-[13px] text-[#565959] mb-2 line-clamp-2">
                     {post.excerpt}
                   </p>
                 )}
-                
+
                 <div className="text-[11px] text-[#6F7373]">
                   <time>{formatDate(post.published_at)}</time>
                 </div>

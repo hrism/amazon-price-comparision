@@ -328,7 +328,7 @@ export default function RicePageClient() {
           </>
         )}
 
-        <CategoryBlogSection categorySlug="rice" />
+        <CategoryBlogSection categorySlug="rice" categoryName="米" />
         <CategoryGrid categories={categories} currentCategory="/rice" />
       </div>
     </main>
