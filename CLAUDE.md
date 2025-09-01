@@ -20,6 +20,13 @@
 - `OPENAI_API_KEY`
 - `SCRAPE_AUTH_TOKEN` - スクレイピングAPI保護用トークン（32文字以上のランダム文字列推奨）
 
+Twitter自動投稿機能用（オプション）：
+- `TWITTER_API_KEY` - Twitter API Key (Consumer Key)
+- `TWITTER_API_SECRET` - Twitter API Secret (Consumer Secret)
+- `TWITTER_ACCESS_TOKEN` - Twitter Access Token
+- `TWITTER_ACCESS_TOKEN_SECRET` - Twitter Access Token Secret
+- `NEXT_PUBLIC_BASE_URL` - 本番環境のベースURL（デフォルト: https://www.yasu-ku-kau.com）
+
 ### 4. データベーステーブル名
 - トイレットペーパー: `toilet_paper_products`
 - 洗剤: `dishwashing_liquid_products`
@@ -99,3 +106,36 @@
    - 全商品チェック：`python check_all_products.py`
    - 本番DB接続確認：`python check_production_db.py`
    - テスト商品削除：`python delete_test_products.py`
+
+### 12. Twitter自動投稿機能
+ブログ記事の公開時にTwitterへ自動投稿される仕組み：
+
+1. **即時公開の場合**（status: 'published'）
+   - 管理画面から記事を作成し、即座に公開する場合
+   - `/api/admin/create-post` エンドポイントが記事作成後にTwitterへ投稿
+
+2. **予約投稿の場合**（status: 'scheduled'）
+   - 予約時刻になると `/api/publish-scheduled` が実行される（GitHub Actions経由）
+   - 記事のステータスを'published'に変更し、同時にTwitterへ投稿
+
+3. **Twitter API設定**
+   - Twitter Developer Portalでアプリケーションを作成
+   - OAuth 1.0a認証用のキーとトークンを取得
+   - Vercel環境変数に設定（TWITTER_API_KEY, TWITTER_API_SECRET等）
+
+4. **投稿フォーマット**
+   ```
+   📝 ブログ更新しました！
+   
+   「[記事タイトル]」
+   
+   [記事の抜粋（最大180文字）]
+   
+   #節約 #お得情報 #価格比較 [カテゴリ別ハッシュタグ]
+   [記事URL]
+   ```
+
+5. **エラーハンドリング**
+   - Twitter API認証情報が設定されていない場合はスキップ（エラーにしない）
+   - 投稿失敗時もブログ記事の公開は続行される
+   - 各記事の投稿間に1秒の待機時間を設けてAPI制限を回避

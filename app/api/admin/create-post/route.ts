@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { postScheduledTweet } from '@/lib/twitter';
 
 // 管理者用のSupabaseクライアントを関数内で作成（実行時に環境変数を読み込む）
 function getSupabaseAdmin() {
@@ -74,10 +75,30 @@ export async function POST(request: NextRequest) {
     
     console.log('Post created successfully:', post?.id);
     
+    // 即座に公開される記事の場合、Twitterに投稿
+    let twitterPosted = false;
+    if (post && postData.status === 'published') {
+      try {
+        twitterPosted = await postScheduledTweet(
+          post.id,
+          post.title,
+          post.excerpt || '',
+          post.slug,
+          'blog' // default category since blog_posts table doesn't have category field
+        );
+        if (twitterPosted) {
+          console.log('Successfully posted to Twitter for:', post.slug);
+        }
+      } catch (error) {
+        console.error('Failed to post to Twitter:', error);
+      }
+    }
+    
     return NextResponse.json({ 
       success: true, 
       post,
-      message: '記事が正常に作成されました'
+      message: '記事が正常に作成されました',
+      twitterPosted
     });
     
   } catch (error: any) {

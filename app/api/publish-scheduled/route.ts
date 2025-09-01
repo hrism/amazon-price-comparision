@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { postScheduledTweet } from '@/lib/twitter';
 
 // 管理者用のSupabaseクライアントを関数内で作成（実行時に環境変数を読み込む）
 function getSupabaseAdmin() {
@@ -34,7 +35,7 @@ export async function GET() {
     // 公開時刻を過ぎた予約投稿を取得
     const { data: scheduledPosts, error: fetchError } = await supabaseAdmin
       .from('blog_posts')
-      .select('id, slug, title, published_at')
+      .select('id, slug, title, excerpt, published_at')
       .eq('status', 'scheduled')
       .lte('published_at', now);
     
@@ -63,6 +64,37 @@ export async function GET() {
       scheduledPosts.map(p => ({ slug: p.slug, published_at: p.published_at }))
     );
     
+    // 各記事をTwitterに投稿
+    const twitterResults = [];
+    for (const post of scheduledPosts) {
+      try {
+        const tweetSuccess = await postScheduledTweet(
+          post.id,
+          post.title,
+          post.excerpt || '',
+          post.slug,
+          'blog' // default category since blog_posts table doesn't have category field
+        );
+        twitterResults.push({
+          postId: post.id,
+          slug: post.slug,
+          twitterPosted: tweetSuccess
+        });
+        
+        // API制限を考慮して少し待機
+        if (scheduledPosts.indexOf(post) < scheduledPosts.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      } catch (error) {
+        console.error(`Failed to post to Twitter for ${post.slug}:`, error);
+        twitterResults.push({
+          postId: post.id,
+          slug: post.slug,
+          twitterPosted: false
+        });
+      }
+    }
+    
     return NextResponse.json({
       message: `Successfully published ${scheduledPosts.length} posts`,
       publishedPosts: scheduledPosts.map(post => ({
@@ -70,7 +102,8 @@ export async function GET() {
         slug: post.slug,
         title: post.title,
         published_at: post.published_at
-      }))
+      })),
+      twitterResults
     });
   } catch (error) {
     console.error('Unexpected error:', error);
