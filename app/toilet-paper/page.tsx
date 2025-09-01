@@ -13,15 +13,14 @@ import SortSelector from '@/components/SortSelector';
 import { categories } from '@/lib/categories';
 import { productLabels, toiletPaperLabels } from '@/lib/labels';
 import { calculateToiletPaperScore, SCORE_WEIGHTS } from '@/lib/scoring';
+import { useProductSort } from '@/hooks/useProductSort';
 
-type SortKey = 'price_per_m' | 'price_per_roll' | 'discount_percent' | 'total_score';
 type FilterType = 'all' | 'single' | 'double' | 'sale';
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<SortKey>('price_per_m');
   const [filterType, setFilterType] = useState<FilterType>('double');
   const [minReviewScore, setMinReviewScore] = useState<number>(0);
   const [isLocalhost, setIsLocalhost] = useState(false);
@@ -164,22 +163,16 @@ export default function Home() {
     return (product.review_avg || 0) >= minReviewScore;
   });
 
-  const sortedProducts = [...filteredByReview].sort((a, b) => {
-    switch (sortBy) {
-      case 'price_per_m':
-        return (a.price_per_m || Infinity) - (b.price_per_m || Infinity);
-      case 'price_per_roll':
-        return (a.price_per_roll || Infinity) - (b.price_per_roll || Infinity);
-      case 'discount_percent':
-        return (b.discount_percent || 0) - (a.discount_percent || 0);
-      case 'total_score':
-        // 総合点スコアの計算（高い順）
-        const scoreA = calculateToiletPaperScore(a, filteredByReview, SCORE_WEIGHTS.QUALITY_FOCUSED.review, SCORE_WEIGHTS.QUALITY_FOCUSED.price);
-        const scoreB = calculateToiletPaperScore(b, filteredByReview, SCORE_WEIGHTS.QUALITY_FOCUSED.review, SCORE_WEIGHTS.QUALITY_FOCUSED.price);
-        return scoreB - scoreA; // 高い順
-      default:
-        return 0;
-    }
+  // 共通ソートフックを使用
+  const { sortBy, setSortBy, sortOptions, sortedProducts } = useProductSort(filteredByReview, {
+    defaultSortKey: 'price_per_m',
+    category: 'toilet_paper',
+    calculateScore: (product) => calculateToiletPaperScore(
+      product, 
+      filteredByReview, 
+      SCORE_WEIGHTS.QUALITY_FOCUSED.review, 
+      SCORE_WEIGHTS.QUALITY_FOCUSED.price
+    )
   });
 
   const formatUnitPrice = (price?: number) => {
@@ -277,14 +270,9 @@ export default function Home() {
                 <div className="flex flex-wrap gap-4">
                   <SortSelector
                     value={sortBy}
-                    onChange={(value) => setSortBy(value as SortKey)}
+                    onChange={setSortBy}
                     label={productLabels.sort.label}
-                    options={[
-                      { value: 'total_score', label: '総合点が高い順' },
-                      { value: 'price_per_m', label: toiletPaperLabels.sort.pricePerMeter },
-                      { value: 'price_per_roll', label: toiletPaperLabels.sort.pricePerRoll },
-                      { value: 'discount_percent', label: toiletPaperLabels.sort.discountPercent },
-                    ]}
+                    options={sortOptions}
                   />
 
                   <div>

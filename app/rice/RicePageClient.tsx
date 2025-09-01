@@ -10,6 +10,7 @@ import ProductCard from '@/components/ProductCard';
 import CategoryBlogSection from '@/components/CategoryBlogSection';
 import CategoryGrid from '@/components/CategoryGrid';
 import { categories } from '@/lib/categories';
+import { calculateRiceScore } from '@/lib/scoring';
 
 interface RiceProduct {
   asin: string;
@@ -81,27 +82,13 @@ export default function RicePageClient() {
   }, [useFresh]);
 
   const productsWithScores = useMemo(() => {
-    const priceKey = useFresh ? 'price_per_kg_fresh' : 'price_per_kg';
-    const allPrices = products.map((p: any) => p[priceKey]).filter((p): p is number => p != null && p > 0);
-    const minPrice = Math.min(...allPrices);
-    const maxPrice = Math.max(...allPrices);
-
+    // 共通のスコア計算関数を使用（ベイズ平均でレビュー件数を考慮）
     return products.map(product => {
-      const price = useFresh ? product.price_per_kg_fresh : product.price_per_kg;
-      let totalScore = 3.0;
-
-      if (product.review_avg && product.review_count && product.review_count > 0) {
-        const reviewScore = product.review_avg;
-        const priceScore = price && minPrice && maxPrice && maxPrice !== minPrice
-          ? 5 * ((maxPrice - price) / (maxPrice - minPrice))
-          : 2.5;
-
-        totalScore = reviewScore * 0.7 + priceScore * 0.3;
-      }
-
+      const score = calculateRiceScore(product, products, 0.7, 0.3); // レビュー重み0.7、価格重み0.3
+      
       return {
         ...product,
-        total_score: totalScore
+        total_score: score
       };
     });
   }, [products, useFresh]);
@@ -121,6 +108,8 @@ export default function RicePageClient() {
           return (b.total_score || 0) - (a.total_score || 0);
         case 'review_count':
           return (b.review_count || 0) - (a.review_count || 0);
+        case 'review_avg':
+          return (b.review_avg || 0) - (a.review_avg || 0);
         default:
           return 0;
       }
@@ -130,7 +119,8 @@ export default function RicePageClient() {
   const sortOptions = [
     { value: 'price_per_kg', label: '単価が安い順' },
     { value: 'total_score', label: '総合点が高い順' },
-    { value: 'review_count', label: 'レビュー数順' }
+    { value: 'review_count', label: 'レビュー件数順' },
+    { value: 'review_avg', label: 'レビュー点数順' }
   ];
 
   return (

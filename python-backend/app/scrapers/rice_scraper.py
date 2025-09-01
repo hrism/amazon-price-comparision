@@ -168,18 +168,9 @@ async def scrape_rice(keyword: str = "米") -> List[Dict[str, Any]]:
                             except:
                                 review_count = 0
                     
-                    # タイトルから重量を抽出
-                    weight_kg = None
-                    weight_patterns = [
-                        r'(\d+(?:\.\d+)?)\s*kg',
-                        r'(\d+(?:\.\d+)?)\s*キロ',
-                        r'(\d+(?:\.\d+)?)\s*㎏'
-                    ]
-                    for pattern in weight_patterns:
-                        match = re.search(pattern, title, re.IGNORECASE)
-                        if match:
-                            weight_kg = float(match.group(1))
-                            break
+                    # タイトルから重量を抽出（共通関数を使用）
+                    from app.prompts.rice import extract_weight_from_title
+                    weight_kg = extract_weight_from_title(title)
                     
                     # 米の品種を抽出
                     rice_types = [

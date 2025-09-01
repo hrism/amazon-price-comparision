@@ -47,7 +47,20 @@ def extract_weight_from_title(title: str) -> float:
     """商品タイトルから重量（kg）を抽出"""
     import re
     
-    # パターン: 数字+kg または 数字+キロ
+    # まず「×数＝合計kg」のパターンをチェック（例：5kg×4＝20kg）
+    multiplication_pattern = r'(\d+(?:\.\d+)?)\s*kg?\s*[×x]\s*(\d+)\s*[=＝]\s*(\d+(?:\.\d+)?)\s*kg'
+    mult_match = re.search(multiplication_pattern, title, re.IGNORECASE)
+    if mult_match:
+        # 合計重量を返す
+        return float(mult_match.group(3))
+    
+    # 次に「合計重量kg（内訳）」のパターンをチェック（例：10kg（5kg×2）)
+    total_first_pattern = r'(\d+(?:\.\d+)?)\s*kg\s*[（\(].*[×x].*[）\)]'
+    total_match = re.search(total_first_pattern, title, re.IGNORECASE)
+    if total_match:
+        return float(total_match.group(1))
+    
+    # 通常のパターン: 数字+kg または 数字+キロ
     patterns = [
         r'(\d+(?:\.\d+)?)\s*kg',
         r'(\d+(?:\.\d+)?)\s*キロ',

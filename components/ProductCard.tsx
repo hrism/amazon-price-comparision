@@ -45,7 +45,7 @@ export default function ProductCard<T extends BaseProduct>({
 }: ProductCardProps<T>) {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [showScoreTooltip, setShowScoreTooltip] = useState(false);
-  
+
   const formatPrice = (price?: number) => {
     if (!price) return '-';
     return `¥${price.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
@@ -150,7 +150,7 @@ export default function ProductCard<T extends BaseProduct>({
                   {showScoreTooltip && (
                     <div className="absolute bottom-full left-0 mb-2 w-48 p-2 bg-gray-800 text-white text-[11px] rounded shadow-lg z-10">
                       <div className="text-[11px] leading-relaxed">
-                        レビュー評価と単価を考慮した総合スコア（5点満点）
+                        レビュー評価（点数および件数）と単価を考慮した総合スコア（5点満点）
                       </div>
                       <div className="absolute top-full left-4 -mt-1">
                         <div className="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
@@ -221,7 +221,7 @@ export default function ProductCard<T extends BaseProduct>({
           </div>
         </div>
       </div>
-      
+
       {/* Share Modal */}
       <ShareModal
         isOpen={isShareModalOpen}

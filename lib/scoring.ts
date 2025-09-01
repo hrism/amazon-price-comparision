@@ -20,8 +20,8 @@ interface ProductWithScore {
 function calculateAdjustedReviewScore(
   reviewAvg: number | undefined,
   reviewCount: number | undefined,
-  C: number = 10, // 信頼性パラメータ（最小レビュー数の閾値）
-  m: number = 3.5 // 全商品の平均レビュー点数の推定値
+  C: number = 100, // 信頼性パラメータ（最小レビュー数の閾値）- レビュー件数の影響を大幅に抑制
+  m: number = 3.8 // 全商品の平均レビュー点数の推定値（やや高めに設定）
 ): number {
   if (!reviewCount || !reviewAvg) {
     return m; // レビューがない場合は平均値を返す
@@ -48,6 +48,46 @@ function calculatePriceScore(
 }
 
 /**
+ * 汎用的な総合点スコア計算関数
+ */
+function calculateGenericScore(
+  product: ProductWithScore,
+  allProducts: ProductWithScore[],
+  priceField: keyof ProductWithScore,
+  reviewWeight: number = 0.5,
+  priceWeight: number = 0.5
+): number {
+  // 単価の最小値・最大値を取得
+  const validPrices = allProducts
+    .map(p => p[priceField] as number | undefined)
+    .filter((price): price is number => price !== undefined && price > 0);
+
+  const productPrice = product[priceField] as number | undefined;
+
+  if (validPrices.length === 0 || !productPrice) {
+    // 価格情報がない場合は調整レビュースコアに0.5を掛けてペナルティを与える
+    // これにより、価格不明の商品が不当に高いランキングになるのを防ぐ
+    const adjustedReview = calculateAdjustedReviewScore(product.review_avg, product.review_count);
+    return adjustedReview * 0.5; // 最大でも2.5点に制限
+  }
+
+  const minPrice = Math.min(...validPrices);
+  const maxPrice = Math.max(...validPrices);
+
+  // 調整レビュースコアの計算（ベイズ平均でレビュー件数を考慮）
+  const adjustedReviewScore = calculateAdjustedReviewScore(
+    product.review_avg,
+    product.review_count
+  );
+
+  // 単価スコアの計算
+  const priceScore = calculatePriceScore(productPrice, minPrice, maxPrice);
+
+  // 重み付けして総合スコアを計算
+  return adjustedReviewScore * reviewWeight + priceScore * priceWeight;
+}
+
+/**
  * トイレットペーパー用の総合点スコア計算
  */
 export function calculateToiletPaperScore(
@@ -56,30 +96,7 @@ export function calculateToiletPaperScore(
   reviewWeight: number = 0.5,
   priceWeight: number = 0.5
 ): number {
-  // 単価の最小値・最大値を取得
-  const validPrices = allProducts
-    .map(p => p.price_per_m)
-    .filter((price): price is number => price !== undefined && price > 0);
-
-  if (validPrices.length === 0 || !product.price_per_m) {
-    // 価格情報がない場合はレビュースコアのみ
-    return calculateAdjustedReviewScore(product.review_avg, product.review_count);
-  }
-
-  const minPrice = Math.min(...validPrices);
-  const maxPrice = Math.max(...validPrices);
-
-  // 調整レビュースコアの計算
-  const adjustedReviewScore = calculateAdjustedReviewScore(
-    product.review_avg,
-    product.review_count
-  );
-
-  // 単価スコアの計算
-  const priceScore = calculatePriceScore(product.price_per_m, minPrice, maxPrice);
-
-  // 重み付けして総合スコアを計算
-  return adjustedReviewScore * reviewWeight + priceScore * priceWeight;
+  return calculateGenericScore(product, allProducts, 'price_per_m', reviewWeight, priceWeight);
 }
 
 /**
@@ -91,34 +108,11 @@ export function calculateDishwashingScore(
   reviewWeight: number = 0.5,
   priceWeight: number = 0.5
 ): number {
-  // 単価の最小値・最大値を取得
-  const validPrices = allProducts
-    .map(p => p.price_per_1000ml)
-    .filter((price): price is number => price !== undefined && price > 0);
-
-  if (validPrices.length === 0 || !product.price_per_1000ml) {
-    // 価格情報がない場合はレビュースコアのみ
-    return calculateAdjustedReviewScore(product.review_avg, product.review_count);
-  }
-
-  const minPrice = Math.min(...validPrices);
-  const maxPrice = Math.max(...validPrices);
-
-  // 調整レビュースコアの計算
-  const adjustedReviewScore = calculateAdjustedReviewScore(
-    product.review_avg,
-    product.review_count
-  );
-
-  // 単価スコアの計算
-  const priceScore = calculatePriceScore(product.price_per_1000ml, minPrice, maxPrice);
-
-  // 重み付けして総合スコアを計算
-  return adjustedReviewScore * reviewWeight + priceScore * priceWeight;
+  return calculateGenericScore(product, allProducts, 'price_per_1000ml', reviewWeight, priceWeight);
 }
 
 /**
- * ミネラルウォーター用の総合点スコア計算（他商品と統一した5点満点方式）
+ * ミネラルウォーター用の総合点スコア計算
  */
 export function calculateMineralWaterScore(
   product: ProductWithScore & { price_per_liter?: number },
@@ -126,38 +120,11 @@ export function calculateMineralWaterScore(
   reviewWeight = 0.5,
   priceWeight = 0.5
 ): number {
-  let score = 0;
-
-  // レビュースコア (0-5点)
-  if (product.review_avg && product.review_avg > 0) {
-    score += product.review_avg * reviewWeight;
-  }
-
-  // 価格スコア (0-5点)
-  if (product.price_per_liter && product.price_per_liter > 0 && allProducts.length > 0) {
-    const prices = allProducts
-      .filter(p => p.price_per_liter && p.price_per_liter > 0)
-      .map(p => p.price_per_liter!);
-
-    if (prices.length > 0) {
-      const minPrice = Math.min(...prices);
-      const maxPrice = Math.max(...prices);
-
-      if (maxPrice !== minPrice) {
-        // 安い方が高得点
-        const priceScore = ((maxPrice - product.price_per_liter) / (maxPrice - minPrice)) * 5;
-        score += priceScore * priceWeight;
-      } else {
-        score += 2.5 * priceWeight; // 全て同じ価格の場合は中間点
-      }
-    }
-  }
-
-  return Math.min(5, score); // 最大5点
+  return calculateGenericScore(product, allProducts, 'price_per_liter', reviewWeight, priceWeight);
 }
 
 /**
- * 米用の総合点スコア計算（他商品と統一した5点満点方式）
+ * 米用の総合点スコア計算
  */
 export function calculateRiceScore(
   product: ProductWithScore & { price_per_kg?: number },
@@ -165,34 +132,7 @@ export function calculateRiceScore(
   reviewWeight = 0.5,
   priceWeight = 0.5
 ): number {
-  let score = 0;
-
-  // レビュースコア (0-5点)
-  if (product.review_avg && product.review_avg > 0) {
-    score += product.review_avg * reviewWeight;
-  }
-
-  // 価格スコア (0-5点)
-  if (product.price_per_kg && product.price_per_kg > 0 && allProducts.length > 0) {
-    const prices = allProducts
-      .filter(p => p.price_per_kg && p.price_per_kg > 0)
-      .map(p => p.price_per_kg!);
-
-    if (prices.length > 0) {
-      const minPrice = Math.min(...prices);
-      const maxPrice = Math.max(...prices);
-
-      if (maxPrice !== minPrice) {
-        // 安い方が高得点
-        const priceScore = ((maxPrice - product.price_per_kg) / (maxPrice - minPrice)) * 5;
-        score += priceScore * priceWeight;
-      } else {
-        score += 2.5 * priceWeight; // 全て同じ価格の場合は中間点
-      }
-    }
-  }
-
-  return Math.min(5, score); // 最大5点
+  return calculateGenericScore(product, allProducts, 'price_per_kg', reviewWeight, priceWeight);
 }
 
 // Alias for toilet paper for backward compatibility

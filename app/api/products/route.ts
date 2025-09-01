@@ -36,6 +36,9 @@ export async function GET(request: NextRequest) {
     } else if (productType === 'mineral_water' || productType === 'mineral-water') {
       tableName = 'mineral_water_products';
       sortField = 'price_per_liter';
+    } else if (productType === 'rice') {
+      tableName = 'rice_products';
+      sortField = 'price_per_kg';
     }
     
     // Build query
@@ -45,7 +48,7 @@ export async function GET(request: NextRequest) {
       .order(sortField, { ascending: true });
     
     // Apply keyword filter if provided and not default
-    if (keyword && keyword !== 'トイレットペーパー' && keyword !== '食器用洗剤' && keyword !== 'ミネラルウォーター') {
+    if (keyword && keyword !== 'トイレットペーパー' && keyword !== '食器用洗剤' && keyword !== 'ミネラルウォーター' && keyword !== '米') {
       query = query.ilike('title', `%${keyword}%`);
     }
     
@@ -72,6 +75,10 @@ export async function GET(request: NextRequest) {
       } else if (filter === 'bottle') {
         query = query.lt('bottle_count', 24);
       } else if (filter === 'sale') {
+        query = query.eq('on_sale', true);
+      }
+    } else if (productType === 'rice') {
+      if (filter === 'sale') {
         query = query.eq('on_sale', true);
       }
     }

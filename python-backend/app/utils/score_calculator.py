@@ -7,8 +7,8 @@ from typing import List, Dict, Optional
 def calculate_adjusted_review_score(
     review_avg: Optional[float],
     review_count: Optional[int],
-    C: float = 10,  # 信頼性パラメータ（最小レビュー数の閾値）
-    m: float = 3.5  # 全商品の平均レビュー点数の推定値
+    C: float = 100,  # 信頼性パラメータ（最小レビュー数の閾値）- レビュー件数の影響を大幅に抑制
+    m: float = 3.8  # 全商品の平均レビュー点数の推定値（やや高めに設定）
 ) -> float:
     """ベイズ平均を使用した調整レビュースコアの計算"""
     if not review_count or not review_avg:
@@ -53,12 +53,13 @@ def calculate_total_score(
     # 単価を取得
     current_price = product.get(price_field)
     if current_price is None or current_price <= 0:
-        # 価格情報がない場合はレビュースコアのみ
+        # 価格情報がない場合は調整レビュースコアに0.5を掛けてペナルティを与える
+        # これにより、価格不明の商品が不当に高いランキングになるのを防ぐ
         adjusted_review = calculate_adjusted_review_score(
             product.get('review_avg'),
             product.get('review_count')
         )
-        return adjusted_review
+        return adjusted_review * 0.5  # 最大でも2.5点に制限
 
     # 有効な価格のリストを作成
     valid_prices = [
