@@ -104,8 +104,8 @@ export default function DishwashingLiquid() {
         params.append('filter', filterType);
       }
 
-      // dishwashing専用APIエンドポイントを使用
-      const apiUrl = '/api/dishwashing/search';
+      // dishwashing-liquid専用APIエンドポイントを使用
+      const apiUrl = '/api/dishwashing-liquid/search';
       const response = await fetch(`${apiUrl}?${params}`);
       if (!response.ok) {
         const errorText = await response.text();

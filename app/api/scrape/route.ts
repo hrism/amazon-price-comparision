@@ -48,7 +48,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // PythonバックエンドのAPIを呼び出す
     try {
       const apiUrl = type === 'dishwashing_liquid' 
-        ? 'http://localhost:8000/api/dishwashing/search'
+        ? 'http://localhost:8000/api/dishwashing-liquid/search'
         : 'http://localhost:8000/api/search';
       
       const searchParams = new URLSearchParams({

@@ -25,6 +25,7 @@ export interface DishwashingProduct {
   price_per_1000ml?: number;
   scent?: string;
   is_concentrated?: boolean;
+  is_refill?: boolean;
   last_fetched_at?: string;
 }
 

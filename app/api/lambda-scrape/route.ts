@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       
       // 商品タイプに応じてエンドポイントを選択
       const endpoint = product_types.includes('dishwashing_liquid') 
-        ? '/api/dishwashing/search' 
+        ? '/api/dishwashing-liquid/search' 
         : '/api/search';
       
       const response = await fetch(`${pythonBackendUrl}${endpoint}`, {
