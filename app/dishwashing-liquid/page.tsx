@@ -84,7 +84,7 @@ export default function DishwashingLiquid() {
         const scrapeResponse = await fetch('/api/scrape', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'dishwashing_liquid' })
+          body: JSON.stringify({ type: 'dishwashing-liquid' })
         });
 
         if (!scrapeResponse.ok) {
@@ -104,8 +104,9 @@ export default function DishwashingLiquid() {
         params.append('filter', filterType);
       }
 
-      // dishwashing-liquid専用APIエンドポイントを使用
-      const apiUrl = '/api/dishwashing-liquid/search';
+      // 統一APIエンドポイントを使用
+      params.append('type', 'dishwashing-liquid');
+      const apiUrl = '/api/products';
       const response = await fetch(`${apiUrl}?${params}`);
       if (!response.ok) {
         const errorText = await response.text();
@@ -139,7 +140,7 @@ export default function DishwashingLiquid() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          product_types: ['dishwashing_liquid'],
+          product_types: ['dishwashing-liquid'],
           force_scrape: true,
           scrape_token: process.env.NEXT_PUBLIC_SCRAPE_TOKEN
         }),

@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     let tableName = 'toilet_paper_products';
     let sortField = 'price_per_m';
     
-    if (productType === 'dishwashing_liquid' || productType === 'dishwashing-liquid') {
+    if (productType === 'dishwashing-liquid') {
       tableName = 'dishwashing_liquid_products';
       sortField = 'price_per_1000ml';
     } else if (productType === 'mineral_water' || productType === 'mineral-water') {
