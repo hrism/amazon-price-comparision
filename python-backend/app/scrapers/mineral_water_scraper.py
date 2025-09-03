@@ -25,7 +25,7 @@ async def scrape_mineral_water(keyword: str = "ミネラルウォーター") -> 
         "intl.accept_languages": "ja,ja-JP"
     })
     
-    driver = uc.Chrome(options=options)
+    driver = uc.Chrome(options=options, version_main=139)
     driver.implicitly_wait(10)
     
     try:

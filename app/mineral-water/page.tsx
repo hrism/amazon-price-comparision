@@ -47,7 +47,7 @@ export default function MineralWater() {
   const [products, setProducts] = useState<MineralWaterProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<SortKey>('price_per_liter');
+  const [sortBy, setSortBy] = useState<SortKey>('total_score');
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [minReviewScore, setMinReviewScore] = useState<number>(0);
   const [isLocalhost, setIsLocalhost] = useState(false);

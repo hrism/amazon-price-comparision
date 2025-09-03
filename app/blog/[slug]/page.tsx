@@ -151,11 +151,11 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
       />
       
       {/* 著者紹介 */}
-      <div className="mt-12 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+      <div className="mt-12 p-6 bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg border border-orange-200">
         <h3 className="text-lg font-bold text-gray-900 mb-3">この記事を書いた人</h3>
         <div className="flex items-start space-x-4">
           <div className="flex-shrink-0">
-            <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
+            <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center">
               <span className="text-white text-2xl font-bold">安</span>
             </div>
           </div>
@@ -167,7 +167,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
               見かけの価格に惑わされない賢い買い物術を発信中。
             </p>
             <div className="mt-3">
-              <Link href="/" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+              <Link href="/" className="text-orange-600 hover:text-orange-700 text-sm font-medium">
                 →価格比較ツールを使ってみる
               </Link>
             </div>

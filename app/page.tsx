@@ -171,14 +171,14 @@ export default async function Home() {
             </Link>
 
             <div className="grid md:grid-cols-2 gap-8">
-              {/* 単価TOP3 */}
+              {/* 総合点TOP3 */}
               <div>
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <span className="text-green-500">💰</span>
-                  単価が安い TOP3
+                  <span className="text-yellow-500">⭐</span>
+                  総合点 TOP3
                 </h3>
                 <div className="space-y-3">
-                  {category.priceTop3.map((product, index) => (
+                  {category.scoreTop3.map((product, index) => (
                     <div key={product.asin} className="relative">
                       <div className="absolute -top-2 -left-2 bg-[#FF9900] text-white font-bold text-[13px] rounded-full w-10 h-10 flex items-center justify-center shadow-sm z-10">
                         {index + 1}位
@@ -189,14 +189,14 @@ export default async function Home() {
                 </div>
               </div>
 
-              {/* 総合点TOP3 */}
+              {/* 単価TOP3 */}
               <div>
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <span className="text-yellow-500">⭐</span>
-                  総合点 TOP3
+                  <span className="text-green-500">💰</span>
+                  単価が安い TOP3
                 </h3>
                 <div className="space-y-3">
-                  {category.scoreTop3.map((product, index) => (
+                  {category.priceTop3.map((product, index) => (
                     <div key={product.asin} className="relative">
                       <div className="absolute -top-2 -left-2 bg-[#FF9900] text-white font-bold text-[13px] rounded-full w-10 h-10 flex items-center justify-center shadow-sm z-10">
                         {index + 1}位

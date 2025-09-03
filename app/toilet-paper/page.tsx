@@ -165,7 +165,7 @@ export default function Home() {
 
   // 共通ソートフックを使用
   const { sortBy, setSortBy, sortOptions, sortedProducts } = useProductSort(filteredByReview, {
-    defaultSortKey: 'price_per_m',
+    defaultSortKey: 'total_score',
     category: 'toilet_paper',
     calculateScore: (product) => calculateToiletPaperScore(
       product, 

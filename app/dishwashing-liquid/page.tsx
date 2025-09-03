@@ -37,7 +37,7 @@ export default function DishwashingLiquid() {
   const [products, setProducts] = useState<DishwashingProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<SortKey>('price_per_1000ml');
+  const [sortBy, setSortBy] = useState<SortKey>('total_score');
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [minReviewScore, setMinReviewScore] = useState<number>(0);
   const [isLocalhost, setIsLocalhost] = useState(false);

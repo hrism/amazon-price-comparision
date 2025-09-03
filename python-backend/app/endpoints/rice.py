@@ -39,7 +39,8 @@ async def search_rice(
         # force=falseの場合は既存データを返す
         if not force:
             try:
-                result = supabase.table("rice_products").select("*").execute()
+                # out_of_stock=falseの商品のみ取得（在庫切れ商品を除外）
+                result = supabase.table("rice_products").select("*").eq("out_of_stock", False).execute()
                 if result.data:
                     # 最新の更新時刻を取得
                     latest_update = max((p.get('last_fetched_at', '') for p in result.data), default='')

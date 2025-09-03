@@ -51,7 +51,7 @@ export default function RicePageClient() {
   const [products, setProducts] = useState<RiceProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState('price_per_kg');
+  const [sortBy, setSortBy] = useState('total_score');
   const [minScore, setMinScore] = useState(0);
   const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
   const [useFresh, setUseFresh] = useState(false);

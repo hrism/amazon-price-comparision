@@ -22,7 +22,7 @@ supabase: Client = create_client(
     os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
 )
 
-async def scrape_rice(keyword: str = "米") -> List[Dict[str, Any]]:
+async def scrape_rice(keyword: str = "米", check_out_of_stock: bool = True) -> List[Dict[str, Any]]:
     """
     米商品をスクレイピングする
     カテゴリフィルター付きでAmazon検索を実行
@@ -41,7 +41,8 @@ async def scrape_rice(keyword: str = "米") -> List[Dict[str, Any]]:
         "intl.accept_languages": "ja,ja-JP"
     })
     
-    driver = uc.Chrome(options=options)
+    # Chrome 139に対応するバージョンを指定
+    driver = uc.Chrome(options=options, version_main=139)
     driver.implicitly_wait(10)
     
     try:
@@ -104,10 +105,30 @@ async def scrape_rice(keyword: str = "米") -> List[Dict[str, Any]]:
                     img_elem = element.select_one('img.s-image')
                     image_url = img_elem.get('src', '') if img_elem else ''
                     
-                    # 価格
+                    # 価格要素を先に取得
                     price_elem = element.select_one('.a-price .a-offscreen')
                     if not price_elem:
                         price_elem = element.select_one('.a-price-whole')
+                    
+                    # 在庫切れチェック
+                    out_of_stock = False
+                    if check_out_of_stock:
+                        # 複数の方法で在庫状況を確認
+                        
+                        # 方法1: a-color-price, a-color-stateクラスで在庫切れテキストをチェック
+                        availability_elem = element.select_one('.a-color-price, .a-color-state')
+                        if availability_elem:
+                            availability_text = availability_elem.text.strip()
+                            if any(keyword in availability_text for keyword in ['在庫切れ', '現在在庫切れ', '現在お取り扱いできません', '入荷未定', '一時的に在庫切れ']):
+                                out_of_stock = True
+                                print(f"[DEBUG] Out of stock (method 1): {title[:50]}... - {availability_text}")
+                        
+                        # 方法2: 価格表示がない、またはAddToCartボタンがない場合
+                        add_to_cart = element.select_one('[data-action="s-card-button"]')
+                        if not add_to_cart and not price_elem:
+                            # 価格もカートボタンもない場合は在庫切れの可能性
+                            out_of_stock = True
+                            print(f"[DEBUG] Out of stock (method 2 - no price/cart): {title[:50]}...")
                     
                     price = 0
                     if price_elem:
@@ -116,6 +137,11 @@ async def scrape_rice(keyword: str = "米") -> List[Dict[str, Any]]:
                             price = int(float(re.sub(r'[^\d.]', '', price_text)))
                         except:
                             price = 0
+                    
+                    # 価格が0の場合も在庫切れとマーク
+                    if price <= 0:
+                        out_of_stock = True
+                        print(f"[DEBUG] No price found, marking as out of stock: {title[:50]}...")
                     
                     # 通常価格（セール前価格）
                     regular_price_elem = element.select_one('.a-text-price .a-offscreen')
@@ -212,13 +238,17 @@ async def scrape_rice(keyword: str = "米") -> List[Dict[str, Any]]:
                         'rice_type': rice_type,
                         'is_musenmai': is_musenmai,
                         'discount_percent': discount_percent,
-                        'on_sale': discount_percent > 0
+                        'on_sale': discount_percent > 0,
+                        'out_of_stock': out_of_stock
                     }
                     
-                    # 重量と単価が計算できる商品のみ追加
-                    if weight_kg and price_per_kg:
+                    # 重量と単価が計算できる商品、または在庫切れ商品を追加
+                    if (weight_kg and price_per_kg) or out_of_stock:
                         products.append(product)
-                        print(f"[DEBUG] Added product: {title[:50]}... - {weight_kg}kg - ¥{price_per_kg}/kg")
+                        if out_of_stock:
+                            print(f"[DEBUG] Added out-of-stock product: {title[:50]}...")
+                        else:
+                            print(f"[DEBUG] Added product: {title[:50]}... - {weight_kg}kg - ¥{price_per_kg}/kg")
                     
                 except Exception as e:
                     print(f"[ERROR] Failed to parse product element: {e}")
@@ -256,6 +286,9 @@ async def save_rice_to_db(products: List[Dict[str, Any]]) -> Dict[str, Any]:
         for product in products_list:
             product['last_fetched_at'] = now
             product['on_sale'] = bool(product.get('discount_percent', 0) > 0)
+            # out_of_stock フィールドを確実に設定
+            if 'out_of_stock' not in product:
+                product['out_of_stock'] = False
         
         result = supabase.table("rice_products").insert(products_list).execute()
         
