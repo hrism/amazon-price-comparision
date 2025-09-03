@@ -55,6 +55,7 @@ export default function RicePageClient() {
   const [minScore, setMinScore] = useState(0);
   const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
   const [useFresh, setUseFresh] = useState(false);
+  const [weightFilter, setWeightFilter] = useState<'all' | '5kg' | '10kg' | 'other'>('all');
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -96,7 +97,19 @@ export default function RicePageClient() {
   const sortedProducts = useMemo(() => {
     const filtered = productsWithScores.filter(product => {
       const reviewScore = product.review_avg || 0;
-      return reviewScore >= minScore;
+      
+      // レビュースコアフィルター
+      if (reviewScore < minScore) return false;
+      
+      // 容量フィルター
+      if (weightFilter !== 'all') {
+        const weight = product.weight_kg;
+        if (weightFilter === '5kg' && weight !== 5) return false;
+        if (weightFilter === '10kg' && weight !== 10) return false;
+        if (weightFilter === 'other' && (weight === 5 || weight === 10)) return false;
+      }
+      
+      return true;
     });
 
     return [...filtered].sort((a, b) => {
@@ -114,7 +127,7 @@ export default function RicePageClient() {
           return 0;
       }
     });
-  }, [productsWithScores, sortBy, minScore, useFresh]);
+  }, [productsWithScores, sortBy, minScore, useFresh, weightFilter]);
 
   const sortOptions = [
     { value: 'price_per_kg', label: '単価が安い順' },
@@ -138,19 +151,64 @@ export default function RicePageClient() {
           description="Amazonで米を最安値で購入！1kgあたりの価格を一覧比較。"
         />
 
-        <div className="mb-4 flex gap-2">
-          <button
-            onClick={() => setUseFresh(false)}
-            className={`px-4 py-2 rounded-lg ${!useFresh ? 'bg-[#FF9900] text-white' : 'bg-gray-200 text-gray-700'}`}
-          >
-            通常配送
-          </button>
-          <button
-            onClick={() => setUseFresh(true)}
-            className={`px-4 py-2 rounded-lg ${useFresh ? 'bg-[#FF9900] text-white' : 'bg-gray-200 text-gray-700'}`}
-          >
-            Amazon Fresh
-          </button>
+        <div className="mb-4 space-y-2">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setUseFresh(false)}
+              className={`px-4 py-2 rounded-lg ${!useFresh ? 'bg-[#FF9900] text-white' : 'bg-gray-200 text-gray-700'}`}
+            >
+              通常配送
+            </button>
+            <button
+              onClick={() => setUseFresh(true)}
+              className={`px-4 py-2 rounded-lg ${useFresh ? 'bg-[#FF9900] text-white' : 'bg-gray-200 text-gray-700'}`}
+            >
+              Amazon Fresh
+            </button>
+          </div>
+          
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => setWeightFilter('all')}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                weightFilter === 'all' 
+                  ? 'bg-[#FF9900] text-white' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              すべて
+            </button>
+            <button
+              onClick={() => setWeightFilter('5kg')}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                weightFilter === '5kg' 
+                  ? 'bg-[#FF9900] text-white' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              5kg
+            </button>
+            <button
+              onClick={() => setWeightFilter('10kg')}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                weightFilter === '10kg' 
+                  ? 'bg-[#FF9900] text-white' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              10kg
+            </button>
+            <button
+              onClick={() => setWeightFilter('other')}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                weightFilter === 'other' 
+                  ? 'bg-[#FF9900] text-white' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              その他の容量
+            </button>
+          </div>
         </div>
 
         {loading ? (
@@ -203,6 +261,7 @@ export default function RicePageClient() {
                 <div className="flex items-center gap-3">
                   <span className="text-[13px] font-normal text-[#0F1111]">
                     {sortedProducts.length}件の商品
+                    {weightFilter !== 'all' && ` (${weightFilter === 'other' ? 'その他' : weightFilter})`}
                     {minScore > 0 && ` (★${minScore.toFixed(1)}以上)`}
                   </span>
                   {lastUpdateTime && (
