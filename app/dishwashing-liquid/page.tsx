@@ -104,10 +104,8 @@ export default function DishwashingLiquid() {
         params.append('filter', filterType);
       }
 
-      // 統一APIエンドポイントを使用
-      params.append('type', 'dishwashing-liquid');
-      const apiUrl = '/api/products';
-      const response = await fetch(`${apiUrl}?${params}`);
+      // APIエンドポイントを使用
+      const response = await fetch(`/api/dishwashing-liquid/search?${params}`);
       if (!response.ok) {
         const errorText = await response.text();
         console.error('API Error:', errorText);
@@ -115,7 +113,22 @@ export default function DishwashingLiquid() {
       }
 
       const data = await response.json();
-      setProducts(data);
+      // APIレスポンスがオブジェクトの場合はproductsプロパティを使用
+      const productsArray = Array.isArray(data) ? data : (data.products || []);
+      setProducts(productsArray);
+      
+      // APIレスポンスのlastUpdateフィールドを使用
+      if (data.lastUpdate) {
+        setLastUpdateTime(data.lastUpdate);
+      } else if (productsArray && productsArray.length > 0) {
+        // フォールバック: 商品データから最新のlast_fetched_atを取得
+        const latest = productsArray.reduce((prev: any, current: any) => {
+          const prevDate = new Date(prev.last_fetched_at || prev.updated_at || 0);
+          const currentDate = new Date(current.last_fetched_at || current.updated_at || 0);
+          return currentDate > prevDate ? current : prev;
+        });
+        setLastUpdateTime(latest.last_fetched_at || latest.updated_at || null);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {

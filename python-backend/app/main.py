@@ -60,7 +60,7 @@ async def scrape_all_products(
 ):
     """全商品タイプを一括でスクレイピングする統合エンドポイント"""
     import time
-    from .scrapers.registry import get_all_product_types, get_scraper
+    import asyncio
     
     start_time = time.time()
     
@@ -77,40 +77,72 @@ async def scrape_all_products(
         else:
             print("Local environment detected - skipping token validation")
         
-        # 全商品タイプを取得
-        product_types = get_all_product_types()
         results = {}
         
-        # 各商品タイプごとにスクレイピング
-        for product_type in product_types:
+        # 各エンドポイントを順次呼び出し（セッション競合を避けるため）
+        product_endpoints = [
+            ("toilet_paper", "トイレットペーパー"),
+            ("dishwashing_liquid", "食器用洗剤"),
+            ("mineral_water", "ミネラルウォーター"),
+            ("rice", "米")
+        ]
+        
+        for product_type, keyword in product_endpoints:
+            type_start = time.time()
+            
             try:
-                type_start = time.time()
+                print(f"\n{'='*60}")
                 print(f"Starting {product_type} scraping...")
+                print(f"{'='*60}")
                 
-                # 対応するスクレイパーを取得
-                scraper_instance = get_scraper(product_type, scraper, text_parser, db)
+                # 各商品タイプごとに対応するエンドポイントを呼び出し
+                if product_type == "toilet_paper":
+                    # toilet_paperエンドポイント（既存のsearch_products関数を呼び出し）
+                    result = await search_products(keyword=keyword, force=True, scrape_token=scrape_token)
+                    # Listが返ってくるので、結果を整形
+                    result = {
+                        "count": len(result),
+                        "products": result,
+                        "source": "scraping"
+                    }
+                    
+                elif product_type == "dishwashing_liquid":
+                    from .endpoints.dishwashing import search_dishwashing
+                    result = await search_dishwashing(keyword=keyword, force=True, scrape_token=scrape_token)
+                    
+                elif product_type == "mineral_water":
+                    from .endpoints.mineral_water import search_mineral_water
+                    result = await search_mineral_water(keyword=keyword, force=True, scrape_token=scrape_token)
+                    
+                elif product_type == "rice":
+                    from .endpoints.rice import search_rice
+                    result = await search_rice(keyword=keyword, force=True, scrape_token=scrape_token)
                 
-                # スクレイピング実行
-                result = await scraper_instance.scrape(force=True)
-                
-                type_time = time.time() - type_start
+                # 結果を記録
                 results[product_type] = {
                     "status": "success",
-                    "count": result["count"],
-                    "new": result.get("new", 0),
-                    "updated": result.get("updated", 0),
-                    "time": round(type_time, 2)
+                    "count": result.get("count", 0),
+                    "time": round(time.time() - type_start, 2),
+                    "source": result.get("source", "unknown")
                 }
-                print(f"{product_type} scraping completed: {result['count']} products in {type_time:.2f}s")
+                
+                print(f"✓ Completed {product_type}: {results[product_type]['count']} products in {results[product_type]['time']}s")
+                
+                # 次のスクレイピングの前に少し待機（Chromeの完全クリーンアップのため）
+                await asyncio.sleep(2)
                 
             except Exception as e:
+                import traceback
+                error_msg = str(e)
+                print(f"✗ Error scraping {product_type}: {error_msg}")
+                print(f"Traceback: {traceback.format_exc()}")
+                
                 results[product_type] = {
                     "status": "error",
-                    "error": str(e),
+                    "error": error_msg,
                     "count": 0,
                     "time": round(time.time() - type_start, 2)
                 }
-                print(f"Error scraping {product_type}: {str(e)}")
         
         total_time = time.time() - start_time
         
@@ -608,11 +640,66 @@ async def search_dishwashing_products(
         scraped_products = await scraper.search_products(keyword)
         print(f"Scraped {len(scraped_products)} products")
         
+        # 既存商品のASINと情報を取得
+        existing_products_dict = {}
+        all_existing = await db.get_all_dishwashing_products()
+        for existing in all_existing:
+            existing_products_dict[existing['asin']] = existing
+        print(f"Found {len(existing_products_dict)} existing dishwashing products in database")
+        
         # 処理と保存
         processed_products = []
+        new_products_count = 0
+        updated_products_count = 0
+        
         for product in scraped_products:
             if not product.get('title'):
                 continue
+            
+            asin = product['asin']
+            existing_product = existing_products_dict.get(asin)
+            
+            if existing_product:
+                # 既存商品：価格のみ更新
+                updated_products_count += 1
+                
+                # 価格が変わっていない場合はスキップ
+                if existing_product.get('price') == product.get('price'):
+                    print(f"No price change for {asin}, using existing data")
+                    processed_products.append(existing_product)
+                    continue
+                
+                # 価格が変わった場合：価格関連フィールドのみ再計算
+                print(f"Price changed for {asin}: {existing_product.get('price')} -> {product.get('price')}")
+                
+                # 単価再計算
+                price_per_1000ml = None
+                if product.get('price') and existing_product.get('volume_ml'):
+                    price_per_1000ml = (product['price'] / existing_product['volume_ml']) * 1000
+                
+                # 既存データを保持しつつ価格情報を更新
+                processed_product = {
+                    'asin': asin,
+                    'title': existing_product['title'],  # 既存データを保持
+                    'description': existing_product.get('description'),  # 既存データを保持
+                    'brand': existing_product.get('brand'),  # 既存データを保持
+                    'image_url': product.get('image_url'),  # 画像URLは更新
+                    'price': product.get('price'),  # 新しい価格
+                    'price_regular': product.get('price_regular') if product.get('price_regular') and product.get('price_regular') > 0 else None,  # 新しい定価
+                    'discount_percent': product.get('discount_percent'),  # 新しい割引率
+                    'on_sale': product.get('on_sale', False),  # 新しいセール状態
+                    'review_avg': product.get('review_avg'),  # 新しいレビュー
+                    'review_count': product.get('review_count'),  # 新しいレビュー数
+                    'volume_ml': existing_product.get('volume_ml'),  # 既存データを保持
+                    'price_per_1000ml': price_per_1000ml,  # 再計算
+                    'is_refill': existing_product.get('is_refill', False)  # 既存データを保持
+                }
+                processed_products.append(processed_product)
+                continue
+            
+            # 新商品：ChatGPT解析が必要
+            new_products_count += 1
+            print(f"New dishwashing product detected: {asin}, analyzing with ChatGPT...")
             
             # ChatGPT解析
             extracted_info = await text_parser.extract_dishwashing_info(
@@ -653,6 +740,11 @@ async def search_dishwashing_products(
                 'is_refill': extracted_info.get('is_refill', False)
             }
             processed_products.append(processed_product)
+        
+        print(f"Dishwashing processing summary:")
+        print(f"  - New products (ChatGPT analyzed): {new_products_count}")
+        print(f"  - Updated products (price only): {updated_products_count}")
+        print(f"  - Total processed: {len(processed_products)}")
         
         # 総合スコアを計算
         from app.utils.score_calculator import calculate_all_scores

@@ -45,15 +45,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Database error' }, { status: 500 });
     }
 
+    // 最終更新日時を取得
+    let lastUpdated = null;
+    if (products && products.length > 0) {
+      const latestProduct = products.reduce((latest, product) => {
+        if (!latest.last_fetched_at) return product;
+        if (!product.last_fetched_at) return latest;
+        return new Date(product.last_fetched_at) > new Date(latest.last_fetched_at) ? product : latest;
+      });
+      lastUpdated = latestProduct.last_fetched_at;
+    }
+
     // Vercel Functionsでは既存のSupabaseデータを返す
     // 実際のスクレイピングはGitHub Actionsで定期実行
-    if (products && products.length > 0) {
-      console.log('Returning dishwashing products from Supabase:', products.length);
-      return NextResponse.json(products);
-    } else {
-      console.log('No dishwashing products found in database');
-      return NextResponse.json([]);
-    }
+    console.log('Returning dishwashing products from Supabase:', products?.length || 0);
+    return NextResponse.json({
+      products: products || [],
+      lastUpdate: lastUpdated,
+      count: products?.length || 0
+    });
 
   } catch (error) {
     console.error('Dishwashing Search API error:', error);

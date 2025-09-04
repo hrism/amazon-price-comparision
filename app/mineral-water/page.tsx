@@ -117,8 +117,11 @@ export default function MineralWater() {
       const productsArray = Array.isArray(data) ? data : (data.products || []);
       setProducts(productsArray);
       
-      // 最新のlast_fetched_atを取得
-      if (productsArray && productsArray.length > 0) {
+      // APIレスポンスのlastUpdateフィールドを使用
+      if (data.lastUpdate) {
+        setLastUpdateTime(data.lastUpdate);
+      } else if (productsArray && productsArray.length > 0) {
+        // フォールバック: 商品データから最新のlast_fetched_atを取得
         const latest = productsArray.reduce((prev: any, current: any) => {
           const prevDate = new Date(prev.last_fetched_at || prev.updated_at || 0);
           const currentDate = new Date(current.last_fetched_at || current.updated_at || 0);

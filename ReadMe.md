@@ -2,14 +2,14 @@
 
 日用品（トイレットペーパー・食器用洗剤）のAmazon価格を自動収集し、単価比較で最適な商品を見つけるWebアプリケーション。ブログ機能を統合し、商品レビューや比較記事も配信。
 
-**本番環境**: https://amazon-price-comparision.vercel.app  
+**本番環境**: https://amazon-price-comparision.vercel.app
 **リポジトリ**: https://github.com/hrism/toilet-paper-price-compare
 
 ## 🎯 主要機能
 
 ### 価格比較システム
 - **トイレットペーパー**: 1ロール単価・1m単価で比較
-- **食器用洗剤**: 1000ml単価で比較  
+- **食器用洗剤**: 1000ml単価で比較
 - **自動更新**: 4時間ごとにAmazonから最新価格を取得
 - **スマート解析**: OpenAI APIで商品情報を自動解析
 
@@ -226,7 +226,7 @@ Query Parameters:
   - page: number
   - limit: number
 
-// 食器用洗剤商品一覧  
+// 食器用洗剤商品一覧
 GET /api/products?type=dishwashing_liquid
 Query Parameters:
   - sort: price_per_1000ml | price | review_avg
@@ -313,7 +313,7 @@ Response:
 Vercelダッシュボードで設定:
 ```
 NEXT_PUBLIC_SUPABASE_URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY  
+NEXT_PUBLIC_SUPABASE_ANON_KEY
 NEXT_PUBLIC_AMAZON_PARTNER_TAG
 OPENAI_API_KEY
 SCRAPE_AUTH_TOKEN  # スクレイピングAPI保護用（ランダムな32文字以上推奨）
@@ -497,6 +497,9 @@ A: Supabase Storage → Policies で public アクセスが許可されている
 ## 📄 ライセンス
 
 MIT License - 詳細は [LICENSE](LICENSE) ファイルを参照
+
+## メール
+[ImprovMX](https://app.improvmx.com/)を使用
 
 ## 📞 サポート
 
