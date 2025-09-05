@@ -166,8 +166,9 @@ export default function Home() {
 
   // レビュースコアと単価データでフィルタリング
   const filteredByReview = products.filter(product => {
-    // 単価が取得できていない商品を除外（price_per_mが有効な値を持つ）
-    const hasValidPrice = product.price_per_m && product.price_per_m > 0;
+    // 単価が取得できていない商品を除外（price_per_mまたはprice_per_rollが有効な値を持つ）
+    const hasValidPrice = (product.price_per_m && product.price_per_m > 0) ||
+                         (product.price_per_roll && product.price_per_roll > 0);
     if (!hasValidPrice) return false;
 
     // レビュースコアでフィルタリング
