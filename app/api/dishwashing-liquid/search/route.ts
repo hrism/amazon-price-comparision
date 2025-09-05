@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
       .select('*')
       .range(0, 1000);
       
-    query = query.order('price_per_1000ml', { ascending: true });
+    query = query.order('price_per_1000ml', { ascending: true, nullsFirst: false });
 
     // フィルタ適用
     if (filter === 'refill') {
