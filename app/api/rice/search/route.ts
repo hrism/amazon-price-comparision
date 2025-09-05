@@ -3,12 +3,19 @@ import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 export async function GET(request: NextRequest) {
+  // Create Supabase client inside the function
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  
+  if (!supabaseUrl || !supabaseKey) {
+    return NextResponse.json({ 
+      error: 'Configuration error', 
+      details: 'Missing Supabase credentials' 
+    }, { status: 500 });
+  }
+  
+  const supabase = createClient(supabaseUrl, supabaseKey);
   const searchParams = request.nextUrl.searchParams;
   const force = searchParams.get('force') === 'true';
   const useFresh = searchParams.get('useFresh') === 'true';
