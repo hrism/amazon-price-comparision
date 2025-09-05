@@ -26,8 +26,9 @@ export async function GET(request: NextRequest) {
     // Supabaseから洗剤データを取得
     let query = supabase
       .from('dishwashing_liquid_products')
-      .select('*')
-      .order('price_per_1000ml', { ascending: true });
+      .select('*');
+      
+    query = query.order('price_per_1000ml', { ascending: true });
 
     // フィルタ適用
     if (filter === 'refill') {
