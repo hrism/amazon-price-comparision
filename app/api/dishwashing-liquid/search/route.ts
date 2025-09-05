@@ -23,10 +23,11 @@ export async function GET(request: NextRequest) {
     const keyword = searchParams.get('keyword') || '食器用洗剤';
     const filter = searchParams.get('filter'); // refill, regular, sale
 
-    // Supabaseから洗剤データを取得
+    // Supabaseから洗剤データを取得（全件取得）
     let query = supabase
       .from('dishwashing_liquid_products')
-      .select('*');
+      .select('*')
+      .range(0, 1000);
       
     query = query.order('price_per_1000ml', { ascending: true });
 
