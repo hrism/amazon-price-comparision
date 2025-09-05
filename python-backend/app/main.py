@@ -107,8 +107,8 @@ async def scrape_all_products(
                     }
                     
                 elif product_type == "dishwashing_liquid":
-                    from .endpoints.dishwashing import search_dishwashing
-                    result = await search_dishwashing(keyword=keyword, force=True, scrape_token=scrape_token)
+                    # dishwashing関数は同じファイル内に定義されている
+                    result = await search_dishwashing_internal(keyword=keyword, force=True, scrape_token=scrape_token)
                     
                 elif product_type == "mineral_water":
                     from .endpoints.mineral_water import search_mineral_water
@@ -598,14 +598,13 @@ async def refetch_single_product(asin: str):
         print(f"Error refetching product {asin}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/dishwashing/search")
-async def search_dishwashing_products(
+async def search_dishwashing_internal(
     keyword: str = "食器用洗剤",
     filter: Optional[str] = None,
     force: bool = False,
     scrape_token: Optional[str] = None
 ):
-    """食器用洗剤の検索エンドポイント"""
+    """食器用洗剤の検索内部関数（dict形式で返す）"""
     import time
     start_time = time.time()
     
@@ -767,13 +766,29 @@ async def search_dishwashing_products(
         total_time = time.time() - start_time
         print(f"Total processing time: {total_time:.2f}s")
         
-        return processed_products_with_scores
+        # scrape_all_products用にdict形式で返す
+        return {
+            "products": processed_products_with_scores,
+            "count": len(processed_products_with_scores),
+            "source": "scraping" if force else "cache"
+        }
         
     except Exception as e:
         import traceback
         print(f"Error in dishwashing search: {str(e)}")
         print(f"Full traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/dishwashing/search")
+async def search_dishwashing_products(
+    keyword: str = "食器用洗剤",
+    filter: Optional[str] = None,
+    force: bool = False,
+    scrape_token: Optional[str] = None
+):
+    """食器用洗剤の検索APIエンドポイント（list形式で返す）"""
+    result = await search_dishwashing_internal(keyword, filter, force, scrape_token)
+    return result["products"]  # APIエンドポイントとしてはproductsのみを返す
 
 # ミネラルウォーターエンドポイントを追加
 from app.endpoints.mineral_water import router as mineral_water_router
