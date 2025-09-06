@@ -16,6 +16,7 @@ import { calculateMaskScore, SCORE_WEIGHTS } from '@/lib/scoring';
 type SortKey = 'price_per_mask' | 'price' | 'discount_percent' | 'total_score';
 type PackFilterType = 'all' | 'large_pack' | 'small_pack' | 'sale';
 type SizeFilterType = 'all' | 'large' | 'slightly_large' | 'regular' | 'slightly_small' | 'small' | 'kids' | 'unknown';
+type ColorFilterType = 'all' | 'white' | 'black' | 'gray' | 'pink' | 'blue' | 'beige' | 'purple' | 'green' | 'yellow' | 'multicolor';
 
 interface MaskProduct {
   asin: string;
@@ -31,6 +32,7 @@ interface MaskProduct {
   review_count?: number;
   mask_count?: number;
   mask_size?: 'large' | 'slightly_large' | 'regular' | 'slightly_small' | 'small' | 'kids' | null;
+  mask_color?: 'white' | 'black' | 'gray' | 'pink' | 'blue' | 'beige' | 'purple' | 'green' | 'yellow' | 'multicolor' | null;
   price_per_mask?: number;
   last_fetched_at?: string;
   created_at?: string;
@@ -44,10 +46,15 @@ export default function Mask() {
   const [sortBy, setSortBy] = useState<SortKey>('total_score');
   const [packFilter, setPackFilter] = useState<PackFilterType>('all');
   const [sizeFilter, setSizeFilter] = useState<SizeFilterType>('all');
+  const [colorFilter, setColorFilter] = useState<ColorFilterType>('all');
   const [minReviewScore, setMinReviewScore] = useState<number>(0);
   const [isLocalhost, setIsLocalhost] = useState(false);
   const [refetchingProducts, setRefetchingProducts] = useState<Set<string>>(new Set());
   const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
+  const [availableFilters, setAvailableFilters] = useState<{
+    colors: Array<{value: string, count: number, label: string}>,
+    sizes: Array<{value: string, count: number, label: string}>
+  }>({ colors: [], sizes: [] });
 
   useEffect(() => {
     // localhost環境かチェック
@@ -57,11 +64,27 @@ export default function Mask() {
        window.location.hostname === '127.0.0.1' ||
        window.location.hostname.startsWith('192.168.'))
     );
+    
+    // フィルターオプションを取得
+    fetchFilters();
   }, []);
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [packFilter, sizeFilter, colorFilter]);
+
+  // フィルターオプションを取得
+  const fetchFilters = async () => {
+    try {
+      const response = await fetch('/api/mask/filters');
+      if (response.ok) {
+        const data = await response.json();
+        setAvailableFilters(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch filters:', err);
+    }
+  };
 
   // 商品データを再取得
   const fetchProducts = async (forceRefresh = false) => {
@@ -90,7 +113,26 @@ export default function Mask() {
         }
       }
 
+      // フィルターパラメータを構築
       const params = new URLSearchParams({ keyword: 'マスク' });
+      
+      // フィルターをバックエンドに送信（優先順位: pack > size > color）
+      let filterParam = null;
+      console.log('Filter values:', { packFilter, sizeFilter, colorFilter });
+      
+      if (packFilter !== 'all') {
+        filterParam = packFilter;
+      } else if (sizeFilter !== 'all') {
+        filterParam = `size_${sizeFilter}`;
+      } else if (colorFilter !== 'all') {
+        filterParam = `color_${colorFilter}`;
+      }
+      
+      console.log('Selected filter param:', filterParam);
+      
+      if (filterParam) {
+        params.append('filter', filterParam);
+      }
 
       // mask専用APIエンドポイントを使用
       const apiUrl = '/api/mask/search';
@@ -163,50 +205,6 @@ export default function Mask() {
     }
   };
 
-  // フィルタリング
-  const getFilteredProducts = (products: MaskProduct[]) => {
-    let filtered = [...products];
-    
-    // 容量フィルター
-    switch (packFilter) {
-      case 'large_pack':
-        filtered = filtered.filter(p => p.mask_count && p.mask_count >= 50);
-        break;
-      case 'small_pack':
-        filtered = filtered.filter(p => p.mask_count && p.mask_count < 50);
-        break;
-      case 'sale':
-        filtered = filtered.filter(p => p.on_sale);
-        break;
-    }
-    
-    // サイズフィルター
-    switch (sizeFilter) {
-      case 'large':
-        filtered = filtered.filter(p => p.mask_size === 'large');
-        break;
-      case 'slightly_large':
-        filtered = filtered.filter(p => p.mask_size === 'slightly_large');
-        break;
-      case 'regular':
-        filtered = filtered.filter(p => p.mask_size === 'regular');
-        break;
-      case 'slightly_small':
-        filtered = filtered.filter(p => p.mask_size === 'slightly_small');
-        break;
-      case 'small':
-        filtered = filtered.filter(p => p.mask_size === 'small');
-        break;
-      case 'kids':
-        filtered = filtered.filter(p => p.mask_size === 'kids');
-        break;
-      case 'unknown':
-        filtered = filtered.filter(p => !p.mask_size);
-        break;
-    }
-    
-    return filtered;
-  };
 
   // レビュースコアと単価データでフィルタリング
   const filteredByReview = products.filter(product => {
@@ -219,8 +217,8 @@ export default function Mask() {
     return (product.review_avg || 0) >= minReviewScore;
   });
 
-  // フィルタリングとソート
-  const filteredProducts = getFilteredProducts(filteredByReview);
+  // バックエンドでフィルタリング済みなので、レビューフィルタのみ適用
+  const filteredProducts = filteredByReview;
 
   // ソート
   const sortedProducts = [...filteredProducts].sort((a, b) => {
@@ -371,13 +369,30 @@ export default function Mask() {
                       className="px-2 py-1 text-[13px] border border-[#D5D9D9] rounded-2xl bg-[#F0F2F2] hover:bg-[#E3E6E6] cursor-pointer"
                     >
                       <option value="all">すべて</option>
-                      <option value="large">大きめ</option>
-                      <option value="slightly_large">やや大きめ</option>
-                      <option value="regular">ふつう</option>
-                      <option value="slightly_small">やや小さめ</option>
-                      <option value="small">小さめ</option>
-                      <option value="kids">子供用</option>
+                      {availableFilters.sizes.map(size => (
+                        <option key={size.value} value={size.value}>
+                          {size.label} ({size.count}件)
+                        </option>
+                      ))}
                       <option value="unknown">サイズ表記なし</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-normal text-[#565959] mb-1">
+                      カラー
+                    </label>
+                    <select
+                      value={colorFilter}
+                      onChange={(e) => setColorFilter(e.target.value as ColorFilterType)}
+                      className="px-2 py-1 text-[13px] border border-[#D5D9D9] rounded-2xl bg-[#F0F2F2] hover:bg-[#E3E6E6] cursor-pointer"
+                    >
+                      <option value="all">すべて</option>
+                      {availableFilters.colors.map(color => (
+                        <option key={color.value} value={color.value}>
+                          {color.label} ({color.count}件)
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -391,7 +406,7 @@ export default function Mask() {
             </div>
 
             <div className="space-y-3">
-              {sortedProducts.slice(0, 20).map((product, index) => {
+              {sortedProducts.map((product, index) => {
                 return (
                   <ProductCard
                     key={product.asin}
@@ -416,6 +431,19 @@ export default function Mask() {
                             {product.mask_size === 'slightly_small' && 'やや小さめ'}
                             {product.mask_size === 'small' && '小さめ'}
                             {product.mask_size === 'kids' && '子供用'}
+                          </span>
+                        )}
+                        {product.mask_color && product.mask_color !== 'white' && (
+                          <span className="px-2 py-0.5 text-[11px] rounded-2xl bg-[#F3E5F5] text-[#7B1FA2] border border-[#CE93D8]">
+                            {product.mask_color === 'black' && 'ブラック'}
+                            {product.mask_color === 'gray' && 'グレー'}
+                            {product.mask_color === 'pink' && 'ピンク'}
+                            {product.mask_color === 'blue' && 'ブルー'}
+                            {product.mask_color === 'beige' && 'ベージュ'}
+                            {product.mask_color === 'purple' && 'パープル'}
+                            {product.mask_color === 'green' && 'グリーン'}
+                            {product.mask_color === 'yellow' && 'イエロー'}
+                            {product.mask_color === 'multicolor' && 'マルチカラー'}
                           </span>
                         )}
                       </>

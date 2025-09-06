@@ -358,10 +358,73 @@ export interface {ProductType}Product {
 1. **重複ASIN処理**: スクレイピング時に同じASINが複数回出現する場合の処理
 2. **非同期/同期の混在**: Supabaseクライアントのメソッドは同期的
 3. **import文**: 相対インポートと絶対インポートの使い分け
-4. **APIレスポンス形式**: 配列を返すかオブジェクトを返すか統一する
+4. **APIレスポンス形式**: 必ずオブジェクト形式で返す（配列直接返しは禁止）
 5. **タイムゾーン**: UTCで保存し、表示時にJSTに変換
 
-### 5.3 パフォーマンス考慮事項
+### 5.3 APIレスポンス形式（重要）
+
+**絶対に配列を直接返してはいけません。必ずオブジェクト形式で返すこと。**
+
+**正しい形式（ミネラルウォーター準拠）:**
+```json
+{
+  "status": "success", 
+  "count": 10,
+  "products": [...],
+  "from_cache": true,
+  "time": 1.23
+}
+```
+
+**間違った形式（使用禁止）:**
+```json
+[...] // 配列を直接返すのは絶対禁止
+```
+
+### 5.4 Next.js API 実装の重要な注意点
+
+**Pythonバックエンドとの連携について:**
+
+Next.js APIは常にPythonバックエンドを優先して呼び出し、エラー時のみSupabaseフォールバックを使用すること。
+
+**正しい実装パターン（ミネラルウォーター準拠）:**
+```typescript
+// 常にPythonバックエンドを呼び出す
+try {
+  const pythonBackendUrl = process.env.NODE_ENV === 'production'
+    ? 'https://your-python-backend.herokuapp.com'
+    : 'http://localhost:8000';
+  
+  const params = new URLSearchParams({
+    keyword: keyword,
+    force: force ? 'true' : 'false'
+  });
+  if (filter) {
+    params.append('filter', filter);
+  }
+  
+  const response = await fetch(`${pythonBackendUrl}/api/{product_type}/search?${params}`);
+  if (!response.ok) throw new Error(`Python backend error: ${response.statusText}`);
+  
+  const data = await response.json();
+  return NextResponse.json(data);
+} catch (error) {
+  console.error('Python backend error:', error);
+  // Supabaseフォールバック
+}
+```
+
+**間違った実装例（絶対に避ける）:**
+- `force=true`の場合のみPythonバックエンドを呼び出す
+- 通常のリクエストでSupabaseを直接使用する
+- エラー処理なしでSupabaseにフォールバックする
+
+**問題が発生する理由:**
+1. Pythonバックエンドの最新データ（ChatGPT解析結果含む）がSupabaseに反映されていない
+2. フィルター機能がSupabaseでは正常に動作しない
+3. データの整合性が保たれない
+
+### 5.4 パフォーマンス考慮事項
 
 - 大量の商品を扱う場合はページネーション実装
 - キャッシュ戦略の検討（1時間、4時間等）

@@ -8,6 +8,7 @@ SYSTEM_PROMPT = """
 
 1. mask_count: 枚数
 2. mask_size: マスクのサイズ
+3. mask_color: マスクの色
 
 枚数の例：
 - "50枚入り" → mask_count: 50
@@ -22,6 +23,25 @@ SYSTEM_PROMPT = """
 - "slightly_small": やや小さめ、やや小さめサイズ、ややちいさめ、少し小さめ
 - "small": 小さめ、小さいサイズ、ちいさめ、Sサイズ、S、スモール、小顔用、女性用、小さい
 - "kids": 子供用、こども用、キッズ、子ども用、幼児用、園児用、小学生用
+
+カラーの判定基準：
+- "white": ホワイト、白、白色、しろ、ホワイトカラー
+- "black": ブラック、黒、黒色、くろ、ブラックカラー
+- "gray": グレー、灰色、グレイ、はいいろ
+- "pink": ピンク、桃色、ももいろ、ピンクカラー
+- "blue": ブルー、青、青色、あお、ブルーカラー、ネイビー、紺、紺色
+- "beige": ベージュ、肌色、はだいろ
+- "purple": パープル、紫、紫色、むらさき、ラベンダー
+- "green": グリーン、緑、緑色、みどり
+- "yellow": イエロー、黄色、きいろ
+- "multicolor": 複数の色が記載されている場合（例：ピンクとブルー、3色セット、バイカラー、ツートン、ツートーン、カラーマスク）
+
+注意事項（カラー）：
+- 複数の色名が含まれる場合は"multicolor"とする
+- 「/」で区切られた複数の色がある場合は"multicolor"とする（例：ホワイト/ピンクベージュ/ペールベージュ/ニュアンスグレー）
+- 「カラーマスク」「カラー」とだけ記載されている場合も"multicolor"とする
+- 「バイカラー」「ツートン」「ツートーン」などは"multicolor"とする
+- 色の記載がない場合、または「不織布」のみの場合は"white"とする
 
 注意事項：
 - 複数箱・パックの場合は合計枚数を計算
@@ -41,7 +61,8 @@ USER_PROMPT_TEMPLATE = """
 以下のJSON形式で情報を返してください：
 {{
   "mask_count": 枚数,
-  "mask_size": "large" | "slightly_large" | "regular" | "slightly_small" | "small" | "kids" | null
+  "mask_size": "large" | "slightly_large" | "regular" | "slightly_small" | "small" | "kids" | null,
+  "mask_color": "white" | "black" | "gray" | "pink" | "blue" | "beige" | "purple" | "green" | "yellow" | "multicolor"
 }}
 
 情報が取得できない場合は、その項目にnullを設定してください。

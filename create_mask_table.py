@@ -30,6 +30,8 @@ CREATE TABLE IF NOT EXISTS mask_products (
   review_avg NUMERIC(3,2),
   review_count INTEGER,
   mask_count INTEGER,
+  mask_size TEXT,
+  mask_color TEXT,
   price_per_mask NUMERIC(10,2),
   last_fetched_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -41,6 +43,8 @@ CREATE INDEX IF NOT EXISTS idx_mask_price_per_mask ON mask_products(price_per_ma
 CREATE INDEX IF NOT EXISTS idx_mask_on_sale ON mask_products(on_sale);
 CREATE INDEX IF NOT EXISTS idx_mask_review_avg ON mask_products(review_avg);
 CREATE INDEX IF NOT EXISTS idx_mask_last_fetched ON mask_products(last_fetched_at DESC);
+CREATE INDEX IF NOT EXISTS idx_mask_size ON mask_products(mask_size);
+CREATE INDEX IF NOT EXISTS idx_mask_color ON mask_products(mask_color);
 
 -- 更新日時を自動更新するトリガー
 CREATE OR REPLACE FUNCTION update_mask_updated_at()
