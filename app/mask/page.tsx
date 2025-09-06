@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import ProductCard from '@/components/ProductCard';
 import ReviewFilter from '@/components/ReviewFilter';
@@ -40,7 +40,8 @@ interface MaskProduct {
 }
 
 export default function Mask() {
-  const [products, setProducts] = useState<MaskProduct[]>([]);
+  const [allProducts, setAllProducts] = useState<MaskProduct[]>([]);  // 全商品データを保持
+  const [products, setProducts] = useState<MaskProduct[]>([]);  // フィルター後の商品データ
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortKey>('total_score');
@@ -65,13 +66,17 @@ export default function Mask() {
        window.location.hostname.startsWith('192.168.'))
     );
     
-    // フィルターオプションを取得
-    fetchFilters();
+    // 初回読み込み時にデータとフィルターオプションを並列取得
+    Promise.all([
+      fetchProducts(),
+      fetchFilters()
+    ]);
   }, []);
 
+  // フィルター変更時はクライアント側でフィルタリング（APIは呼ばない）
   useEffect(() => {
-    fetchProducts();
-  }, [packFilter, sizeFilter, colorFilter]);
+    applyFilters();
+  }, [packFilter, sizeFilter, colorFilter, allProducts]);
 
   // フィルターオプションを取得
   const fetchFilters = async () => {
@@ -84,6 +89,31 @@ export default function Mask() {
     } catch (err) {
       console.error('Failed to fetch filters:', err);
     }
+  };
+
+  // クライアント側でフィルタリングを適用（最適化）
+  const applyFilters = () => {
+    if (allProducts.length === 0) return;
+    
+    const filtered = allProducts.filter(product => {
+      // 容量フィルター
+      if (packFilter === 'large_pack' && (!product.mask_count || product.mask_count < 50)) return false;
+      if (packFilter === 'small_pack' && (product.mask_count && product.mask_count >= 50)) return false;
+      if (packFilter === 'sale' && !product.on_sale) return false;
+      
+      // サイズフィルター
+      if (sizeFilter !== 'all') {
+        if (sizeFilter === 'unknown' && product.mask_size) return false;
+        if (sizeFilter !== 'unknown' && product.mask_size !== sizeFilter) return false;
+      }
+      
+      // カラーフィルター
+      if (colorFilter !== 'all' && product.mask_color !== colorFilter) return false;
+      
+      return true;
+    });
+    
+    setProducts(filtered);
   };
 
   // 商品データを再取得
@@ -113,27 +143,9 @@ export default function Mask() {
         }
       }
 
-      // フィルターパラメータを構築
+      // 全商品を取得（フィルターなし）
       const params = new URLSearchParams({ keyword: 'マスク' });
       
-      // フィルターをバックエンドに送信（優先順位: pack > size > color）
-      let filterParam = null;
-      console.log('Filter values:', { packFilter, sizeFilter, colorFilter });
-      
-      if (packFilter !== 'all') {
-        filterParam = packFilter;
-      } else if (sizeFilter !== 'all') {
-        filterParam = `size_${sizeFilter}`;
-      } else if (colorFilter !== 'all') {
-        filterParam = `color_${colorFilter}`;
-      }
-      
-      console.log('Selected filter param:', filterParam);
-      
-      if (filterParam) {
-        params.append('filter', filterParam);
-      }
-
       // mask専用APIエンドポイントを使用
       const apiUrl = '/api/mask/search';
       const response = await fetch(`${apiUrl}?${params}`);
@@ -149,7 +161,15 @@ export default function Mask() {
 
       // APIレスポンスがオブジェクトの場合はproductsプロパティを使用
       const productsArray = Array.isArray(data) ? data : (data.products || []);
-      setProducts(productsArray);
+      setAllProducts(productsArray);  // 全商品データを保存
+      
+      // 初回読み込み時も現在のフィルターを適用
+      if (packFilter === 'all' && sizeFilter === 'all' && colorFilter === 'all') {
+        setProducts(productsArray);  // フィルターがない場合は全商品を表示
+      } else {
+        // フィルターがある場合は適用（初回読み込み後すぐにapplyFiltersが呼ばれる）
+        setProducts(productsArray);  // 一旦全商品を設定（useEffectでフィルタリングされる）
+      }
       
       // APIレスポンスのlastUpdateフィールドを使用
       if (data.lastUpdate) {
@@ -206,38 +226,39 @@ export default function Mask() {
   };
 
 
-  // レビュースコアと単価データでフィルタリング
-  const filteredByReview = products.filter(product => {
-    // 単価が取得できていない商品を除外（price_per_maskが有効な値を持つ）
-    const hasValidPrice = product.price_per_mask && product.price_per_mask > 0;
-    if (!hasValidPrice) return false;
+  // レビュースコアと単価データでフィルタリング（最適化）
+  const filteredProducts = useMemo(() => {
+    return products.filter(product => {
+      // 単価が取得できていない商品を除外
+      if (!product.price_per_mask || product.price_per_mask <= 0) return false;
+      
+      // レビュースコアでフィルタリング
+      if (minReviewScore > 0 && (product.review_avg || 0) < minReviewScore) return false;
+      
+      return true;
+    });
+  }, [products, minReviewScore]);
 
-    // レビュースコアでフィルタリング
-    if (minReviewScore === 0) return true;
-    return (product.review_avg || 0) >= minReviewScore;
-  });
-
-  // バックエンドでフィルタリング済みなので、レビューフィルタのみ適用
-  const filteredProducts = filteredByReview;
-
-  // ソート
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
-    switch (sortBy) {
-      case 'price_per_mask':
-        return (a.price_per_mask || Infinity) - (b.price_per_mask || Infinity);
-      case 'price':
-        return (a.price || Infinity) - (b.price || Infinity);
-      case 'discount_percent':
-        return (b.discount_percent || 0) - (a.discount_percent || 0);
-      case 'total_score':
-        // 総合点スコアの計算（高い順）
-        const scoreA = calculateMaskScore(a, filteredProducts, SCORE_WEIGHTS.QUALITY_FOCUSED.review, SCORE_WEIGHTS.QUALITY_FOCUSED.price);
-        const scoreB = calculateMaskScore(b, filteredProducts, SCORE_WEIGHTS.QUALITY_FOCUSED.review, SCORE_WEIGHTS.QUALITY_FOCUSED.price);
-        return scoreB - scoreA; // 高い順
-      default:
-        return 0;
-    }
-  });
+  // ソート（最適化）
+  const sortedProducts = useMemo(() => {
+    return [...filteredProducts].sort((a, b) => {
+      switch (sortBy) {
+        case 'price_per_mask':
+          return (a.price_per_mask || Infinity) - (b.price_per_mask || Infinity);
+        case 'price':
+          return (a.price || Infinity) - (b.price || Infinity);
+        case 'discount_percent':
+          return (b.discount_percent || 0) - (a.discount_percent || 0);
+        case 'total_score':
+          // 総合点スコアの計算（高い順）
+          const scoreA = calculateMaskScore(a, filteredProducts, SCORE_WEIGHTS.QUALITY_FOCUSED.review, SCORE_WEIGHTS.QUALITY_FOCUSED.price);
+          const scoreB = calculateMaskScore(b, filteredProducts, SCORE_WEIGHTS.QUALITY_FOCUSED.review, SCORE_WEIGHTS.QUALITY_FOCUSED.price);
+          return scoreB - scoreA; // 高い順
+        default:
+          return 0;
+      }
+    });
+  }, [filteredProducts, sortBy]);
 
   const formatUnitPrice = (price?: number) => {
     if (!price || price === 0) return '---';
@@ -305,7 +326,7 @@ export default function Mask() {
               <div className="flex flex-wrap gap-3 items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span className="text-[13px] font-normal text-[#0F1111]">
-                    {filteredByReview.length}{productLabels.status.productsCount}
+                    {filteredProducts.length}{productLabels.status.productsCount}
                     {minReviewScore > 0 && ` (★${minReviewScore.toFixed(1)}以上)`}
                   </span>
                   {lastUpdateTime && (
@@ -399,14 +420,14 @@ export default function Mask() {
                   <ReviewFilter
                     value={minReviewScore}
                     onChange={setMinReviewScore}
-                    productCount={filteredByReview.length}
+                    productCount={filteredProducts.length}
                   />
                 </div>
               </div>
             </div>
 
             <div className="space-y-3">
-              {sortedProducts.map((product, index) => {
+              {sortedProducts.slice(0, 20).map((product, index) => {
                 return (
                   <ProductCard
                     key={product.asin}

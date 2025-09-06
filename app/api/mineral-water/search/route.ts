@@ -72,6 +72,8 @@ export async function GET(request: NextRequest) {
       lastUpdated = latestProduct.last_fetched_at;
     }
 
+    // デフォルトはSupabaseから既存データを返す
+    console.log('Returning mineral water products from Supabase:', data?.length || 0);
     return NextResponse.json({
       products: data || [],
       lastUpdate: lastUpdated,

@@ -10,6 +10,61 @@
 2. **データベース（Supabase）**: データ保存
 3. **フロントエンド（Next.js）**: 表示と検索
 
+## 基本方針：API接続とデータ取得について
+
+**重要：すべての商材APIは以下の統一された方針に従うこと**
+
+### データ取得の基本ルール
+
+1. **デフォルトはSupabase直接接続**
+   - 通常のリクエストは既存のSupabaseデータを即座に返す
+   - 高速なレスポンスを実現し、ユーザー体験を優先
+
+2. **force=trueパラメータ時のみPythonバックエンド使用**
+   - スクレイピングやデータ更新が必要な場合にのみPythonバックエンドを呼び出し
+   - 主にローカル開発環境での手動更新用
+
+3. **エラー時のSupabaseフォールバック**
+   - Pythonバックエンドでエラーが発生した場合はSupabaseの既存データを返す
+
+### 実装パターン
+
+```typescript
+export async function GET(request: NextRequest) {
+  const force = searchParams.get('force') === 'true';
+  
+  // force=trueの場合のみPythonバックエンドを呼び出し
+  if (force) {
+    try {
+      const pythonResponse = await fetch(pythonBackendUrl);
+      if (pythonResponse.ok) {
+        return NextResponse.json(await pythonResponse.json());
+      }
+    } catch (error) {
+      // エラー時はSupabaseにフォールバック
+    }
+  }
+  
+  // デフォルト：Supabaseから直接取得
+  const { data } = await supabase.from('table').select('*');
+  return NextResponse.json({ products: data });
+}
+```
+
+### 各商材の現状
+
+✅ **トイレットペーパー** (`/api/search`): 正しい実装  
+✅ **食器用洗剤** (`/api/dishwashing-liquid/search`): 正しい実装  
+✅ **ミネラルウォーター** (`/api/mineral-water/search`): 正しい実装  
+✅ **米** (`/api/rice/search`): 正しい実装  
+✅ **マスク** (`/api/mask/search`): 正しい実装  
+
+この方針により：
+- 初回読み込みが高速化
+- パフォーマンス問題の回避
+- 統一されたAPI設計
+- エラー耐性の向上
+
 ## 1. データベース設計
 
 ### 1.1 テーブル作成
@@ -225,23 +280,43 @@ import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 export async function GET(request: NextRequest) {
   try {
+    // Supabaseクライアント作成
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return NextResponse.json({ 
+        error: 'Configuration error', 
+        details: 'Missing Supabase credentials' 
+      }, { status: 500 });
+    }
+    
+    const supabase = createClient(supabaseUrl, supabaseKey);
     const searchParams = request.nextUrl.searchParams;
     const keyword = searchParams.get('keyword') || 'デフォルトキーワード';
     const force = searchParams.get('force') === 'true';
 
-    // forceの場合、Pythonバックエンドを呼び出し
+    // force=trueの場合のみPythonバックエンドを呼び出し
     if (force) {
-      // Python APIを呼び出す処理
+      const pythonBackendUrl = process.env.NODE_ENV === 'production'
+        ? 'https://your-python-backend.herokuapp.com'
+        : 'http://localhost:8000';
+      
+      try {
+        const response = await fetch(`${pythonBackendUrl}/api/{product-type}/search?keyword=${encodeURIComponent(keyword)}&force=true`);
+        if (response.ok) {
+          const data = await response.json();
+          return NextResponse.json(data);
+        }
+      } catch (error) {
+        console.error('Python backend error:', error);
+        // エラー時はSupabaseにフォールバック
+      }
     }
 
-    // データベースから取得
+    // デフォルト：Supabaseから直接取得
     const { data, error } = await supabase
       .from('{product_type}_products')
       .select('*')
@@ -251,8 +326,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'データ取得エラー' }, { status: 500 });
     }
 
+    // 最終更新日時を取得
+    let lastUpdated = null;
+    if (data && data.length > 0) {
+      const latestProduct = data.reduce((latest, product) => {
+        if (!latest.last_fetched_at) return product;
+        if (!product.last_fetched_at) return latest;
+        return new Date(product.last_fetched_at) > new Date(latest.last_fetched_at) ? product : latest;
+      });
+      lastUpdated = latestProduct.last_fetched_at;
+    }
+
+    console.log('Returning products from Supabase:', data?.length || 0);
     return NextResponse.json({
       products: data || [],
+      lastUpdate: lastUpdated,
       count: data?.length || 0
     });
   } catch (error) {
@@ -380,49 +468,6 @@ export interface {ProductType}Product {
 ```json
 [...] // 配列を直接返すのは絶対禁止
 ```
-
-### 5.4 Next.js API 実装の重要な注意点
-
-**Pythonバックエンドとの連携について:**
-
-Next.js APIは常にPythonバックエンドを優先して呼び出し、エラー時のみSupabaseフォールバックを使用すること。
-
-**正しい実装パターン（ミネラルウォーター準拠）:**
-```typescript
-// 常にPythonバックエンドを呼び出す
-try {
-  const pythonBackendUrl = process.env.NODE_ENV === 'production'
-    ? 'https://your-python-backend.herokuapp.com'
-    : 'http://localhost:8000';
-  
-  const params = new URLSearchParams({
-    keyword: keyword,
-    force: force ? 'true' : 'false'
-  });
-  if (filter) {
-    params.append('filter', filter);
-  }
-  
-  const response = await fetch(`${pythonBackendUrl}/api/{product_type}/search?${params}`);
-  if (!response.ok) throw new Error(`Python backend error: ${response.statusText}`);
-  
-  const data = await response.json();
-  return NextResponse.json(data);
-} catch (error) {
-  console.error('Python backend error:', error);
-  // Supabaseフォールバック
-}
-```
-
-**間違った実装例（絶対に避ける）:**
-- `force=true`の場合のみPythonバックエンドを呼び出す
-- 通常のリクエストでSupabaseを直接使用する
-- エラー処理なしでSupabaseにフォールバックする
-
-**問題が発生する理由:**
-1. Pythonバックエンドの最新データ（ChatGPT解析結果含む）がSupabaseに反映されていない
-2. フィルター機能がSupabaseでは正常に動作しない
-3. データの整合性が保たれない
 
 ### 5.4 パフォーマンス考慮事項
 

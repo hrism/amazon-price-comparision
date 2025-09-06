@@ -7,8 +7,22 @@ from dotenv import load_dotenv
 from pathlib import Path
 import httpx
 
+# グローバルなデータベース接続インスタンス（シングルトン）
+_db_instance = None
+
 class Database:
+    def __new__(cls):
+        global _db_instance
+        if _db_instance is None:
+            _db_instance = super(Database, cls).__new__(cls)
+            _db_instance._initialized = False
+        return _db_instance
+    
     def __init__(self):
+        # シングルトンなので初期化は一度だけ
+        if self._initialized:
+            return
+            
         # Load .env.local file from project root
         env_path = Path(__file__).parent.parent.parent / '.env.local'
         load_dotenv(env_path)
@@ -25,13 +39,14 @@ class Database:
             try:
                 self.supabase: Client = create_client(url, key)
                 self.enabled = True
-                print(f"Supabase connected: {url[:30]}...")
+                print(f"✓ Supabase singleton connection established: {url[:30]}...")
             except Exception as e:
                 print(f"Warning: Failed to connect to Supabase: {str(e)}. Database features will be disabled.")
                 self.supabase = None
                 self.enabled = False
         
         self.cache_duration = timedelta(hours=4)  # 4時間のキャッシュ
+        self._initialized = True
     
     async def save_dishwashing_products(self, products: List[Dict[str, Any]]) -> None:
         """食器用洗剤の商品を保存"""

@@ -22,61 +22,43 @@ export async function GET(request: NextRequest) {
     const force = searchParams.get('force') === 'true';
     const filter = searchParams.get('filter') || '';
 
-    // Pythonバックエンドからデータを取得
-    const pythonBackendUrl = process.env.NODE_ENV === 'production'
-      ? 'https://your-python-backend.herokuapp.com'  // 本番環境のURL
-      : 'http://localhost:8000';  // ローカル環境
-    
-    try {
-      const params = new URLSearchParams({
-        keyword: keyword,
-        force: force ? 'true' : 'false'
-      });
-      if (filter) {
-        params.append('filter', filter);
-      }
-      
-      console.log(`Calling Python backend with params: ${params.toString()}`);
-      const fullUrl = `${pythonBackendUrl}/api/mask/search?${params}`;
-      console.log(`Full Python backend URL: ${fullUrl}`);
-      
-      const response = await fetch(fullUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Python backend error: ${response.statusText}`);
-      }
-
-      const responseText = await response.text();
-      console.log(`Python backend raw response (first 200 chars):`, responseText.substring(0, 200));
+    // forceパラメータがtrueの場合のみPythonバックエンドでスクレイピング実行
+    if (force) {
+      const pythonBackendUrl = process.env.NODE_ENV === 'production'
+        ? 'https://your-python-backend.herokuapp.com'  // 本番環境のURL
+        : 'http://localhost:8000';  // ローカル環境
       
       try {
-        const data = JSON.parse(responseText);
-        console.log(`Python backend returned: ${data.count || 'unknown count'} products`);
-        console.log(`Python backend data type: ${typeof data}, is array: ${Array.isArray(data)}`);
-        console.log(`Python backend data structure:`, JSON.stringify(data, null, 2).substring(0, 200));
-        
-        // オブジェクト形式であることを確認
-        if (data && typeof data === 'object' && !Array.isArray(data) && data.status === 'success') {
-          console.log('✓ Valid Python backend response, returning object');
-          return NextResponse.json(data);
-        } else {
-          console.log('⚠️ Invalid Python backend response format, falling back to Supabase');
-          throw new Error('Invalid response format from Python backend');
+        const params = new URLSearchParams({
+          keyword: keyword,
+          force: 'true'
+        });
+        if (filter) {
+          params.append('filter', filter);
         }
-      } catch (parseError) {
-        console.error('Failed to parse Python backend response:', parseError);
-        throw parseError;
+        
+        console.log(`Calling Python backend with params: ${params.toString()}`);
+        const fullUrl = `${pythonBackendUrl}/api/mask/search?${params}`;
+        
+        const response = await fetch(fullUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          signal: AbortSignal.timeout(30000) // 30秒
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data && typeof data === 'object' && data.status === 'success') {
+            console.log('✓ Python backend response successful');
+            return NextResponse.json(data);
+          }
+        }
+      } catch (error) {
+        console.error('Python backend error (force mode):', error);
+        // エラーでもSupabaseにフォールバック
       }
-    } catch (error) {
-      console.error('Python backend error:', error);
-      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-      console.error('Falling back to Supabase');
-      // Pythonバックエンドが利用できない場合は、Supabaseから既存のデータを返す
     }
 
     // データベースから既存データを取得
@@ -124,6 +106,8 @@ export async function GET(request: NextRequest) {
       lastUpdated = latestProduct.last_fetched_at;
     }
 
+    // デフォルトはSupabaseから既存データを返す
+    console.log('Returning mask products from Supabase:', data?.length || 0);
     return NextResponse.json({
       products: data || [],
       lastUpdate: lastUpdated,
