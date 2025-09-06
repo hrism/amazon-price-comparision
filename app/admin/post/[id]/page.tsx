@@ -209,6 +209,17 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // 予約投稿で過去の日時が設定されているかチェック
+    if (formData.status === 'scheduled' && formData.published_at) {
+      const scheduledDate = new Date(formData.published_at);
+      const now = new Date();
+      if (scheduledDate <= now) {
+        alert('予約日時は現在時刻より後の日時を設定してください。');
+        return;
+      }
+    }
+    
     setLoading(true);
 
     try {
