@@ -66,6 +66,19 @@ export const categories: Category[] = [
     }
   },
   {
+    id: 'mask',
+    name: 'マスク',
+    title: 'マスク',
+    description: '1枚単価で比較。大容量パックでお得に購入。',
+    href: '/mask',
+    icon: '😷',
+    available: true,
+    stats: {
+      products: '40+',
+      updated: '毎日更新'
+    }
+  },
+  {
     id: 'tissue',
     name: 'ティッシュペーパー',
     title: 'ティッシュペーパー',

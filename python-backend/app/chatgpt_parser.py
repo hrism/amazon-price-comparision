@@ -3,7 +3,7 @@ from openai import AsyncOpenAI
 from typing import Dict, Optional, Any
 import json
 import re
-from app.prompts import toilet_paper, dishwashing_liquid
+from app.prompts import toilet_paper, dishwashing_liquid, mask
 
 class ChatGPTParser:
     def __init__(self):
@@ -71,6 +71,37 @@ class ChatGPTParser:
             "Dishwashing liquid"
         )
         return dishwashing_liquid.post_process(extracted_info)
+    
+    async def extract_mask_info(self, title: str, description: str = '') -> Dict[str, Any]:
+        """マスクの商品情報を抽出"""
+        prompt = mask.USER_PROMPT_TEMPLATE.format(title=title, description=description)
+        
+        try:
+            response = await self.client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": mask.SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.1,
+                max_tokens=200
+            )
+            
+            content = response.choices[0].message.content
+            
+            # JSON部分のみを抽出
+            json_match = re.search(r'\{.*\}', content, re.DOTALL)
+            if json_match:
+                result = json.loads(json_match.group())
+            else:
+                result = json.loads(content)
+            
+            print(f"Mask extracted from '{title[:50]}...': {result}")
+            return result
+            
+        except Exception as e:
+            print(f"ChatGPT extraction error for mask: {str(e)}")
+            return {'mask_count': None}
     
     async def close(self):
         """リソースのクリーンアップ"""

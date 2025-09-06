@@ -338,3 +338,35 @@ class Database:
             
         except Exception as e:
             print(f"Error saving rice products: {str(e)}")
+    
+    async def save_mask_products(self, products: List[Dict[str, Any]]) -> None:
+        """マスク商品をデータベースに保存"""
+        if not self.enabled or not products:
+            return
+            
+        try:
+            from datetime import datetime, timezone
+            current_time = datetime.now(timezone.utc).isoformat()
+            
+            # 各商品にタイムスタンプを追加
+            for product in products:
+                product['last_fetched_at'] = current_time
+            
+            # mask_productsテーブルに保存（upsert）
+            response = self.supabase.table('mask_products').upsert(products, on_conflict='asin').execute()
+            print(f"Saved {len(products)} mask products to database")
+            
+        except Exception as e:
+            print(f"Error saving mask products: {str(e)}")
+    
+    async def get_mask_products(self) -> List[Dict[str, Any]]:
+        """マスク商品を取得"""
+        if not self.enabled:
+            return []
+            
+        try:
+            response = self.supabase.table('mask_products').select('*').execute()
+            return response.data or []
+        except Exception as e:
+            print(f"Error getting mask products: {str(e)}")
+            return []

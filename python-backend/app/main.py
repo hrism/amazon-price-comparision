@@ -798,6 +798,10 @@ app.include_router(mineral_water_router)
 from app.endpoints.rice import router as rice_router
 app.include_router(rice_router)
 
+# マスクエンドポイントを追加
+from app.endpoints.mask import router as mask_router
+app.include_router(mask_router)
+
 @app.on_event("shutdown")
 async def shutdown_event():
     await scraper.close()

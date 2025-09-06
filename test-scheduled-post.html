@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>予約投稿テスト</title>
+</head>
+<body>
+    <h1>予約投稿の過去日時設定テスト</h1>
+    <p>このHTMLファイルで、予約投稿に過去の日時を設定した場合のアラート表示をテストします。</p>
+    
+    <h2>テスト手順：</h2>
+    <ol>
+        <li>ブラウザで <a href="http://localhost:3002/admin/post/new" target="_blank">http://localhost:3002/admin/post/new</a> を開く</li>
+        <li>タイトルとコンテンツに適当な内容を入力</li>
+        <li>ステータスを「予約投稿」に変更</li>
+        <li>公開予定日時に過去の日時（例：昨日の日時）を設定</li>
+        <li>「保存」ボタンをクリック</li>
+        <li>「予約日時は現在時刻より後の日時を設定してください。」というアラートが表示されることを確認</li>
+    </ol>
+    
+    <h2>テスト結果：</h2>
+    <p>JavaScriptコンソールで以下のコードを実行して、フォーム送信の動作を確認できます：</p>
+    <pre>
+// 過去の日時を設定するテストコード
+const now = new Date();
+const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+const formattedDate = yesterday.toISOString().slice(0, 16);
+console.log('過去の日時:', formattedDate);
+
+// この日時を予約投稿の日時欄に設定して保存ボタンを押すと、
+// アラートが表示されて保存がブロックされます
+    </pre>
+    
+    <script>
+        // 現在時刻と昨日の日時を表示
+        const now = new Date();
+        const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        
+        console.log('現在時刻:', now.toISOString());
+        console.log('昨日の日時（テスト用）:', yesterday.toISOString().slice(0, 16));
+        
+        // テスト用の日時をクリップボードにコピーする関数
+        function copyTestDate() {
+            const testDate = yesterday.toISOString().slice(0, 16);
+            navigator.clipboard.writeText(testDate).then(() => {
+                alert(`テスト用の過去日時をコピーしました: ${testDate}`);
+            });
+        }
+    </script>
+    
+    <button onclick="copyTestDate()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">
+        テスト用の過去日時をコピー
+    </button>
+    
+    <p style="margin-top: 20px; color: #666;">
+        注意：管理画面にログインが必要です。ログインしていない場合は、まず /admin からログインしてください。
+    </p>
+</body>
+</html>

@@ -7,6 +7,7 @@ interface ProductWithScore {
   price_per_1000ml?: number;
   price_per_liter?: number;
   price_per_kg?: number;
+  price_per_mask?: number;
   review_avg?: number;
   review_count?: number;
   price_score?: number;
@@ -121,6 +122,18 @@ export function calculateMineralWaterScore(
   priceWeight = 0.5
 ): number {
   return calculateGenericScore(product, allProducts, 'price_per_liter', reviewWeight, priceWeight);
+}
+
+/**
+ * マスク用の総合点スコア計算
+ */
+export function calculateMaskScore(
+  product: ProductWithScore,
+  allProducts: ProductWithScore[] = [],
+  reviewWeight = 0.5,
+  priceWeight = 0.5
+): number {
+  return calculateGenericScore(product, allProducts, 'price_per_mask', reviewWeight, priceWeight);
 }
 
 /**

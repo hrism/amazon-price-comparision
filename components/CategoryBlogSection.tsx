@@ -18,7 +18,7 @@ interface BlogPost {
 }
 
 interface CategoryBlogSectionProps {
-  categorySlug: 'toilet-paper' | 'dishwashing-liquid' | 'mineral-water' | 'rice';
+  categorySlug: 'toilet-paper' | 'dishwashing-liquid' | 'mineral-water' | 'rice' | 'mask';
   categoryName?: string;
 }
 
@@ -34,7 +34,8 @@ export default function CategoryBlogSection({ categorySlug, categoryName }: Cate
     try {
       // カテゴリIDをスラッグから直接マッピング
       const categoryId = categorySlug === 'toilet-paper' ? 1 :
-                        categorySlug === 'dishwashing-liquid' ? 2 : 3;
+                        categorySlug === 'dishwashing-liquid' ? 2 :
+                        categorySlug === 'mask' ? 5 : 3;
 
       // 該当カテゴリのブログ記事を取得
       const { data, error } = await supabase
