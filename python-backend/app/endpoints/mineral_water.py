@@ -62,10 +62,12 @@ async def search_mineral_water(
             }
         else:
             # force=falseの場合はデータベースから取得
-            from app.db.supabase import supabase_client
+            from app.database import Database
+            db = Database()
             
-            result = supabase_client.table('mineral_water_products').select('*').execute()
-            products = result.data if result.data else []
+            products = await db.get_mineral_water_products()
+            if not products:
+                products = []
             
             return {
                 "status": "success",

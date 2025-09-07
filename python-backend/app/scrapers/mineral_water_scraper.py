@@ -135,14 +135,24 @@ async def scrape_mineral_water(keyword: str = "ミネラルウォーター") -> 
                                 if alt_match:
                                     review_avg = float(alt_match.group(1))
                 
-                # レビュー数
-                review_count_elem = element.select_one('[aria-label*="つ星のうち"] + span')
+                # レビュー数 - 複数のセレクタを試す
+                review_count_elem = (
+                    element.select_one('span[aria-label*="件の評価"]') or
+                    element.select_one('.s-link-style .s-underline-text') or
+                    element.select_one('[data-cy="reviews-ratings-slot"] span.a-size-base') or
+                    element.select_one('[aria-label*="つ星のうち"] + span') or
+                    element.select_one('a[href*="customerReviews"] span')
+                )
                 review_count = 0
                 if review_count_elem:
-                    review_count_text = review_count_elem.text
-                    review_count_match = re.search(r'[\d,]+', review_count_text)
+                    review_count_text = review_count_elem.text.replace(',', '').replace('(', '').replace(')', '').strip()
+                    # "1,234" や "1,234件の評価" のような形式に対応
+                    review_count_match = re.search(r'(\d+(?:,\d+)*)', review_count_text)
                     if review_count_match:
-                        review_count = int(review_count_match.group(0).replace(',', ''))
+                        try:
+                            review_count = int(review_count_match.group(1).replace(',', ''))
+                        except:
+                            pass
                 
                 # 説明文（箇条書き部分）
                 description_parts = []

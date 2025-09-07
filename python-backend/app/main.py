@@ -84,7 +84,8 @@ async def scrape_all_products(
             ("toilet_paper", "トイレットペーパー"),
             ("dishwashing_liquid", "食器用洗剤"),
             ("mineral_water", "ミネラルウォーター"),
-            ("rice", "米")
+            ("rice", "米"),
+            ("mask", "マスク")
         ]
         
         for product_type, keyword in product_endpoints:
@@ -117,6 +118,10 @@ async def scrape_all_products(
                 elif product_type == "rice":
                     from .endpoints.rice import search_rice
                     result = await search_rice(keyword=keyword, force=True, scrape_token=scrape_token)
+                
+                elif product_type == "mask":
+                    from .endpoints.mask import search_mask
+                    result = await search_mask(keyword=keyword, force=True, scrape_token=scrape_token)
                 
                 # 結果を記録
                 results[product_type] = {

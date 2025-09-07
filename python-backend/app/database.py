@@ -385,3 +385,35 @@ class Database:
         except Exception as e:
             print(f"Error getting mask products: {str(e)}")
             return []
+    
+    async def save_mineral_water_products(self, products: List[Dict[str, Any]]) -> None:
+        """ミネラルウォーター商品をデータベースに保存"""
+        if not self.enabled or not products:
+            return
+            
+        try:
+            from datetime import datetime, timezone
+            current_time = datetime.now(timezone.utc).isoformat()
+            
+            # 各商品にタイムスタンプを追加
+            for product in products:
+                product['last_fetched_at'] = current_time
+            
+            # mineral_water_productsテーブルに保存（upsert）
+            response = self.supabase.table('mineral_water_products').upsert(products, on_conflict='asin').execute()
+            print(f"Saved {len(products)} mineral water products to database")
+            
+        except Exception as e:
+            print(f"Error saving mineral water products: {str(e)}")
+    
+    async def get_mineral_water_products(self) -> List[Dict[str, Any]]:
+        """ミネラルウォーター商品を取得"""
+        if not self.enabled:
+            return []
+            
+        try:
+            response = self.supabase.table('mineral_water_products').select('*').execute()
+            return response.data or []
+        except Exception as e:
+            print(f"Error getting mineral water products: {str(e)}")
+            return []
