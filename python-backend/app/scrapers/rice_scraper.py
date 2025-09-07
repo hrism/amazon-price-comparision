@@ -105,7 +105,7 @@ async def scrape_rice(keyword: str = "米", check_out_of_stock: bool = True) -> 
                     img_elem = element.select_one('img.s-image')
                     image_url = img_elem.get('src', '') if img_elem else ''
                     
-                    # 価格要素を先に取得
+                    # 現在の価格を取得
                     price_elem = element.select_one('.a-price .a-offscreen')
                     if not price_elem:
                         price_elem = element.select_one('.a-price-whole')
@@ -143,18 +143,125 @@ async def scrape_rice(keyword: str = "米", check_out_of_stock: bool = True) -> 
                         out_of_stock = True
                         print(f"[DEBUG] No price found, marking as out of stock: {title[:50]}...")
                     
-                    # 通常価格（セール前価格）
-                    regular_price_elem = element.select_one('.a-text-price .a-offscreen')
-                    if not regular_price_elem:
-                        regular_price_elem = element.select_one('.a-text-price')
+                    # 元の価格（セール前価格）を取得
+                    price_regular = price  # デフォルトは現在価格と同じ
                     
-                    price_regular = price
-                    if regular_price_elem:
+                    # 方法1: .a-text-priceから取得（複数ある場合は2番目が元価格）
+                    regular_price_elems = element.select('.a-text-price')
+                    for regular_price_elem in regular_price_elems:
                         regular_text = regular_price_elem.text.replace(',', '').replace('￥', '').replace('¥', '').strip()
-                        try:
-                            price_regular = int(float(re.sub(r'[^\d.]', '', regular_text)))
-                        except:
-                            price_regular = price
+                        # "8602860 や "¥8,602¥8,602" のような重複を処理
+                        # 最初の価格のみを取得
+                        price_match = re.search(r'(\d+)', regular_text)
+                        if price_match:
+                            try:
+                                # 数値が異常に大きい場合（価格の重複）は半分にする
+                                temp_regular = int(price_match.group(1))
+                                if temp_regular > 100000:  # 10万円以上は異常値
+                                    # 桁数を確認して半分にする
+                                    str_price = str(temp_regular)
+                                    half_len = len(str_price) // 2
+                                    if len(str_price) % 2 == 0 and str_price[:half_len] == str_price[half_len:]:
+                                        # 同じ数字の繰り返しなら半分にする
+                                        temp_regular = int(str_price[:half_len])
+                                
+                                # 元の価格が現在価格より高い場合のみ有効（セール中）
+                                if temp_regular > price and temp_regular < 100000:  # 妥当な価格範囲
+                                    price_regular = temp_regular
+                                    print(f"[DEBUG] Sale detected via a-text-price for {title[:30]}... - Original: ¥{temp_regular}, Sale: ¥{price}")
+                                    break
+                            except:
+                                pass
+                    
+                    # 方法2: "Was: ¥X,XXX" パターンを探す  
+                    # 価格リンクやセカンダリテキストに "Was:" が含まれることが多い
+                    was_elements = element.select('.a-color-secondary, .s-price-instructions-style, a.s-link-style, .a-price + *')
+                    
+                    for was_elem in was_elements:
+                        if 'Was:' in was_elem.text or '以前は' in was_elem.text:
+                            # "Was: ¥9,710" または "以前は¥9,710" のようなパターンを探す
+                            was_match = re.search(r'(?:Was:|以前は)\s*[¥￥]?([\d,]+)', was_elem.text)
+                            if was_match:
+                                try:
+                                    was_price = int(float(was_match.group(1).replace(',', '')))
+                                    if was_price > price:
+                                        price_regular = was_price
+                                        print(f"[DEBUG] Sale detected via 'Was/以前は' price for {title[:30]}... - Original: ¥{was_price}, Sale: ¥{price}")
+                                        break
+                                except:
+                                    pass
+                    
+                    # 方法3: 価格リンク内の複数価格パターン（"¥8,602 以前は¥9,710"）
+                    price_link = element.select_one('a.s-link-style')
+                    if price_link:
+                        # 複数の価格が含まれているかチェック
+                        all_prices = re.findall(r'[¥￥]([\d,]+)', price_link.text)
+                        if len(all_prices) >= 2:
+                            try:
+                                # 最も高い価格を元値とする
+                                prices = [int(p.replace(',', '')) for p in all_prices]
+                                max_price = max(prices)
+                                if max_price > price:
+                                    price_regular = max_price
+                                    print(f"[DEBUG] Sale detected via multiple prices for {title[:30]}... - Original: ¥{max_price}, Sale: ¥{price}")
+                            except:
+                                pass
+                    
+                    # 割引パーセンテージを直接探す
+                    discount_found = False
+                    discount_value = 0
+                    
+                    # 複数の方法で割引情報を探す
+                    # 方法1: セールバッジ
+                    sale_badge = element.select_one('.s-badge-text, .a-badge-text')
+                    if sale_badge and 'セール' in sale_badge.text:
+                        print(f"[DEBUG] Sale badge found for {title[:30]}...")
+                        discount_found = True
+                    
+                    # 方法2: 割引バッジを探す
+                    savings_elem = element.select_one('.savingsPercentage')
+                    if savings_elem:
+                        text = savings_elem.text.strip()
+                        match = re.search(r'(\d+)%', text)
+                        if match:
+                            discount_value = int(match.group(1))
+                            discount_found = True
+                            print(f"[DEBUG] Found savings percentage for {title[:30]}... - {text}")
+                    
+                    # 方法3: 割引パーセンテージのテキストを探す（例：「11%割引」）
+                    if not discount_found:
+                        for span in element.select('span'):
+                            text = span.text.strip()
+                            # "11パーセントの割引" や "11%割引" や "-11%" のパターンを探す
+                            if 'パーセント' in text and '割引' in text:
+                                match = re.search(r'(\d+)\s*パーセント', text)
+                                if match:
+                                    discount_value = int(match.group(1))
+                                    discount_found = True
+                                    print(f"[DEBUG] Found discount text for {title[:30]}... - {text}")
+                                    break
+                            elif '割引' in text:
+                                match = re.search(r'(\d+)%?\s*割引', text)
+                                if match:
+                                    discount_value = int(match.group(1))
+                                    discount_found = True
+                                    print(f"[DEBUG] Found discount text for {title[:30]}... - {text}")
+                                    break
+                            elif re.match(r'^-?\d+%$', text):
+                                match = re.search(r'(\d+)%', text)
+                                if match:
+                                    discount_value = int(match.group(1))
+                                    discount_found = True
+                                    print(f"[DEBUG] Found discount percentage for {title[:30]}... - {text}")
+                                    break
+                    
+                    # 割引が見つかった場合は元の価格を計算
+                    if discount_found and discount_value > 0 and price > 0:
+                        # 割引率から元の価格を逆算
+                        calculated_regular = round(price / (1 - discount_value / 100))
+                        if calculated_regular > price_regular:
+                            price_regular = calculated_regular
+                            print(f"[DEBUG] Calculated original price for {title[:30]}... - Discount: {discount_value}%, Original: ¥{calculated_regular}, Sale: ¥{price}")
                     
                     # レビュー情報（ミネラルウォーターと同じ方法）
                     review_elem = element.select_one('[aria-label*="つ星のうち"]')
@@ -217,13 +324,24 @@ async def scrape_rice(keyword: str = "米", check_out_of_stock: bool = True) -> 
                     
                     # 割引率計算
                     discount_percent = 0
-                    if price_regular > price and price > 0:
+                    if discount_found and discount_value > 0:
+                        # 直接検出された割引率を使用
+                        discount_percent = discount_value
+                    elif price_regular > price and price > 0:
+                        # 価格差から計算
                         discount_percent = round((1 - price / price_regular) * 100)
                     
                     # 単価計算
                     price_per_kg = None
                     if weight_kg and weight_kg > 0 and price > 0:
                         price_per_kg = round(price / weight_kg, 2)
+                    
+                    # 在庫切れの場合は価格を0にする
+                    if out_of_stock:
+                        price = 0
+                        price_regular = 0
+                        price_per_kg = None
+                        discount_percent = 0
                     
                     product = {
                         'asin': asin,
@@ -242,8 +360,8 @@ async def scrape_rice(keyword: str = "米", check_out_of_stock: bool = True) -> 
                         'out_of_stock': out_of_stock
                     }
                     
-                    # 重量と単価が計算できる商品、または在庫切れ商品を追加
-                    if (weight_kg and price_per_kg) or out_of_stock:
+                    # 重量が取得できる商品のみ追加（在庫切れでも重量情報があれば追加）
+                    if weight_kg:
                         products.append(product)
                         if out_of_stock:
                             print(f"[DEBUG] Added out-of-stock product: {title[:50]}...")
