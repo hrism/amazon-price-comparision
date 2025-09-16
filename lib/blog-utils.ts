@@ -34,22 +34,24 @@ export function generateTOC(htmlContent: string): TOCItem[] {
 
 export function addIdsToHeadings(htmlContent: string): string {
   const $ = cheerio.load(htmlContent);
-  
+
   $('h2, h3').each((_, element) => {
     const $el = $(element);
     const text = $el.text();
-    
+
     // IDを生成（日本語対応）
     const id = text
       .toLowerCase()
       .replace(/[^\w\u3040-\u309f\u30a0-\u30ff\u4e00-\u9faf\s-]/g, '')
       .replace(/\s+/g, '-')
       .slice(0, 50);
-    
+
     $el.attr('id', id);
   });
-  
-  return $.html();
+
+  // bodyのみ取得、もしくはルート要素の中身のみを返す
+  const bodyHtml = $('body').html();
+  return bodyHtml || $.root().html() || '';
 }
 
 export function calculateReadingTime(htmlContent: string): number {
