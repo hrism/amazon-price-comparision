@@ -2,69 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ブログ記事のテーブル用レスポンシブスタイル */
+/* ブログ記事のテーブル用レスポンシブスタイル（スマホのみ） */
 @media (max-width: 640px) {
-  /* ブログ記事内のテーブルを横スクロール可能にする */
-  .prose table,
-  article table,
-  .blog-content table {
+  .prose table {
     display: block;
-    width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    white-space: nowrap;
-  }
-
-  /* テーブルの最小幅を設定 */
-  .prose table,
-  article table,
-  .blog-content table {
-    min-width: 500px;
-  }
-
-  /* テーブルのセルが改行しないようにする */
-  .prose td,
-  .prose th,
-  article td,
-  article th,
-  .blog-content td,
-  .blog-content th {
-    white-space: nowrap;
-    padding: 0.5rem;
-  }
-
-  /* スクロール可能なコンテナのスタイル */
-  .table-wrapper,
-  .table-container {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    margin: 1rem 0;
-  }
-
-  /* スクロールバーのスタイル（Webkit系ブラウザ） */
-  .prose table::-webkit-scrollbar,
-  article table::-webkit-scrollbar,
-  .blog-content table::-webkit-scrollbar {
-    height: 6px;
-  }
-
-  .prose table::-webkit-scrollbar-track,
-  article table::-webkit-scrollbar-track,
-  .blog-content table::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 3px;
-  }
-
-  .prose table::-webkit-scrollbar-thumb,
-  article table::-webkit-scrollbar-thumb,
-  .blog-content table::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 3px;
-  }
-
-  .prose table::-webkit-scrollbar-thumb:hover,
-  article table::-webkit-scrollbar-thumb:hover,
-  .blog-content table::-webkit-scrollbar-thumb:hover {
-    background: #555;
   }
 }
