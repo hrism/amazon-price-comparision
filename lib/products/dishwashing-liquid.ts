@@ -33,6 +33,7 @@ export async function getDishwashingProducts(): Promise<DishwashingProduct[]> {
   const { data, error } = await supabase
     .from('dishwashing_liquid_products')
     .select('*')
+    .not('price', 'is', null)  // 在庫切れを除外
     .order('price_per_1000ml', { ascending: true, nullsFirst: false });
 
   if (error) {

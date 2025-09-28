@@ -96,6 +96,15 @@ export default async function Home() {
 
   const categories = [
     {
+      name: 'トイレットペーパー',
+      slug: 'toilet-paper',
+      icon: '🧻',
+      href: '/toilet-paper',
+      scoreTop3: toiletPaperTop3,
+      priceTop3: toiletPaperPriceTop3,
+      productCount: toiletPaperProducts.length
+    },
+    {
       name: '米',
       slug: 'rice',
       icon: '🍚',
@@ -112,15 +121,6 @@ export default async function Home() {
       scoreTop3: mineralWaterTop3,
       priceTop3: mineralWaterPriceTop3,
       productCount: mineralWaterProducts.length
-    },
-    {
-      name: 'トイレットペーパー',
-      slug: 'toilet-paper',
-      icon: '🧻',
-      href: '/toilet-paper',
-      scoreTop3: toiletPaperTop3,
-      priceTop3: toiletPaperPriceTop3,
-      productCount: toiletPaperProducts.length
     },
     {
       name: '食器用洗剤',
@@ -150,9 +150,9 @@ export default async function Home() {
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="flex flex-wrap items-center gap-3 md:gap-6 py-3 text-xs md:text-sm">
             <Link href="/" className="hover:text-yellow-400 whitespace-nowrap">🏠 ホーム</Link>
+            <Link href="/toilet-paper" className="hover:text-yellow-400 whitespace-nowrap">🧻 トイレットペーパー</Link>
             <Link href="/rice" className="hover:text-yellow-400 whitespace-nowrap">🍚 米</Link>
             <Link href="/mineral-water" className="hover:text-yellow-400 whitespace-nowrap">💧 ミネラルウォーター</Link>
-            <Link href="/toilet-paper" className="hover:text-yellow-400 whitespace-nowrap">🧻 トイレットペーパー</Link>
             <Link href="/dishwashing-liquid" className="hover:text-yellow-400 whitespace-nowrap">🧽 食器用洗剤</Link>
             <Link href="/blog" className="hover:text-yellow-400 whitespace-nowrap">📝 ブログ</Link>
           </div>

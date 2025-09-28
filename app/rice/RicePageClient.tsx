@@ -10,7 +10,7 @@ import ProductCard from '@/components/ProductCard';
 import CategoryBlogSection from '@/components/CategoryBlogSection';
 import CategoryGrid from '@/components/CategoryGrid';
 import { categories } from '@/lib/categories';
-import { calculateRiceScore } from '@/lib/scoring';
+import { calculateRiceScore, SCORE_WEIGHTS } from '@/lib/scoring';
 
 interface RiceProduct {
   asin: string;
@@ -83,10 +83,18 @@ export default function RicePageClient() {
   }, [useFresh]);
 
   const productsWithScores = useMemo(() => {
+    // Fresh配送時は価格フィールドを調整してからスコア計算
+    const adjustedProducts = products.map(product => ({
+      ...product,
+      price_per_kg: useFresh && product.price_per_kg_fresh
+        ? product.price_per_kg_fresh
+        : product.price_per_kg
+    }));
+
     // 共通のスコア計算関数を使用（ベイズ平均でレビュー件数を考慮）
-    return products.map(product => {
-      const score = calculateRiceScore(product, products, 0.7, 0.3); // レビュー重み0.7、価格重み0.3
-      
+    return adjustedProducts.map(product => {
+      const score = calculateRiceScore(product, adjustedProducts, SCORE_WEIGHTS.QUALITY_FOCUSED.review, SCORE_WEIGHTS.QUALITY_FOCUSED.price); // レビュー重み0.7、価格重み0.3
+
       return {
         ...product,
         total_score: score

@@ -10,6 +10,7 @@ export async function getRiceProducts(useFresh: boolean = false) {
     const { data, error } = await supabase
       .from('rice_products')
       .select('*')
+      .eq('out_of_stock', false)  // 在庫切れを除外
       .order(useFresh ? 'price_per_kg_fresh' : 'price_per_kg', { ascending: true });
     
     if (error) {

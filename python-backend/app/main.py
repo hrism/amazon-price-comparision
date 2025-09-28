@@ -635,7 +635,11 @@ async def search_dishwashing_internal(
             cached_products = await db.get_all_dishwashing_products(filter)
             if cached_products:
                 print(f"Returning {len(cached_products)} dishwashing products from database")
-                return cached_products
+                return {
+                    "products": cached_products,
+                    "count": len(cached_products),
+                    "source": "database"
+                }
             else:
                 print("No dishwashing products in database, performing initial scraping...")
         

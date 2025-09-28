@@ -117,17 +117,29 @@ class AmazonScraper:
                     if title_elem:
                         product['title'] = title_elem.text.strip()
                     
+                    # 在庫切れチェック（テキストで判定）
+                    unavailable = False
+                    for elem in item.select('.a-color-secondary, .s-result-item-text, .a-size-base'):
+                        if elem.text and ('在庫切れ' in elem.text or '現在お取り扱い' in elem.text or
+                                         'Currently unavailable' in elem.text or '現在在庫切れ' in elem.text):
+                            unavailable = True
+                            break
+
                     # 価格
                     price_elem = item.select_one('.a-price .a-offscreen')
                     if not price_elem:
                         price_elem = item.select_one('.a-price-whole')
-                    if price_elem:
+
+                    # 在庫切れの場合は価格をNoneにする
+                    if unavailable or not price_elem:
+                        product['price'] = None
+                    elif price_elem:
                         price_text = price_elem.text.replace(',', '').replace('￥', '').replace('¥', '').strip()
                         try:
                             # 小数点がある場合は整数に変換
                             product['price'] = int(float(price_text))
                         except:
-                            pass
+                            product['price'] = None
                     
                     # 商品説明を先に収集（定価取得で使用するため）
                     description_parts = []

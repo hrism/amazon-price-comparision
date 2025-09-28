@@ -14,6 +14,19 @@ export interface Category {
 
 export const categories: Category[] = [
   {
+    id: 'toilet-paper',
+    name: 'トイレットペーパー',
+    title: 'トイレットペーパー',
+    description: '1m単価・1ロール単価で比較。2倍巻き・3倍巻きも正確に計算。',
+    href: '/toilet-paper',
+    icon: '🧻',
+    available: true,
+    stats: {
+      products: '50+',
+      updated: '毎日更新'
+    }
+  },
+  {
     id: 'rice',
     name: '米',
     title: '米',
@@ -36,19 +49,6 @@ export const categories: Category[] = [
     available: true,
     stats: {
       products: '40+',
-      updated: '毎日更新'
-    }
-  },
-  {
-    id: 'toilet-paper',
-    name: 'トイレットペーパー',
-    title: 'トイレットペーパー',
-    description: '1m単価・1ロール単価で比較。2倍巻き・3倍巻きも正確に計算。',
-    href: '/toilet-paper',
-    icon: '🧻',
-    available: true,
-    stats: {
-      products: '50+',
       updated: '毎日更新'
     }
   },

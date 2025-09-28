@@ -52,14 +52,22 @@ class Database:
         """食器用洗剤の商品を保存"""
         if not self.enabled:
             return
-            
+
         try:
             from datetime import datetime
             current_time = datetime.utcnow().isoformat()
-            
+
             for product in products:
                 # last_fetched_atを追加
                 product['last_fetched_at'] = current_time
+
+                # 価格がNULLの商品の単価もNULLにする
+                if product.get('price') is None:
+                    product['price_regular'] = None
+                    product['price_per_1000ml'] = None
+                    product['on_sale'] = False
+                    product['discount_percent'] = None
+
                 # asinをキーにしてupsert
                 self.supabase.table('dishwashing_liquid_products').upsert(
                     product,
@@ -74,10 +82,13 @@ class Database:
         """食器用洗剤の全商品を取得"""
         if not self.enabled:
             return []
-            
+
         try:
             query = self.supabase.table('dishwashing_liquid_products').select('*')
-            
+
+            # 在庫切れ（価格がnull）を除外
+            query = query.not_.is_('price', 'null')
+
             # フィルタリング
             if filter == 'refill':
                 query = query.eq('is_refill', True)
@@ -85,7 +96,7 @@ class Database:
                 query = query.eq('is_refill', False)
             elif filter == 'sale':
                 query = query.eq('on_sale', True)
-            
+
             # 単価でソート
             query = query.order('price_per_1000ml', desc=False)
             
@@ -103,10 +114,13 @@ class Database:
         """全てのキャッシュ商品を取得（時間制限なし）"""
         if not self.enabled:
             return []
-            
+
         try:
             # 全ての商品を取得（時間制限なし）
             query = self.supabase.table('toilet_paper_products').select('*')
+
+            # 在庫切れ（価格がnull）を除外
+            query = query.not_.is_('price', 'null')
             
             # フィルタリング
             if filter == 'single':
@@ -243,7 +257,15 @@ class Database:
                 
                 # last_fetched_atを追加
                 standardized_dict['last_fetched_at'] = current_time
-                
+
+                # 価格がNULLの商品の単価もNULLにする
+                if standardized_dict.get('price') is None:
+                    standardized_dict['price_regular'] = None
+                    standardized_dict['price_per_roll'] = None
+                    standardized_dict['price_per_m'] = None
+                    standardized_dict['on_sale'] = False
+                    standardized_dict['discount_percent'] = None
+
                 # 価格履歴を保存（別途保存）
                 if standardized_dict.get('price_per_m'):
                     # 価格履歴テーブルに保存
@@ -378,9 +400,12 @@ class Database:
         """マスク商品を取得"""
         if not self.enabled:
             return []
-            
+
         try:
-            response = self.supabase.table('mask_products').select('*').execute()
+            query = self.supabase.table('mask_products').select('*')
+            # 在庫切れ（価格がnull）を除外
+            query = query.not_.is_('price', 'null')
+            response = query.execute()
             return response.data or []
         except Exception as e:
             print(f"Error getting mask products: {str(e)}")
@@ -410,9 +435,12 @@ class Database:
         """ミネラルウォーター商品を取得"""
         if not self.enabled:
             return []
-            
+
         try:
-            response = self.supabase.table('mineral_water_products').select('*').execute()
+            query = self.supabase.table('mineral_water_products').select('*')
+            # 在庫切れ（価格がnull）を除外
+            query = query.not_.is_('price', 'null')
+            response = query.execute()
             return response.data or []
         except Exception as e:
             print(f"Error getting mineral water products: {str(e)}")

@@ -30,6 +30,7 @@ export async function getToiletPaperProducts(): Promise<ToiletPaperProduct[]> {
   const { data, error } = await supabase
     .from('toilet_paper_products')
     .select('*')
+    .not('price', 'is', null)  // 在庫切れを除外
     .order('price_per_m', { ascending: true, nullsFirst: false });
 
   if (error) {

@@ -30,6 +30,7 @@ export async function getMineralWaterProducts(): Promise<MineralWaterProduct[]> 
   const { data, error } = await supabase
     .from('mineral_water_products')
     .select('*')
+    .not('price', 'is', null)  // 在庫切れを除外
     .order('price_per_liter', { ascending: true, nullsFirst: false });
 
   if (error) {

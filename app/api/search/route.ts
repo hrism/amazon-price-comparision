@@ -69,12 +69,13 @@ export async function GET(request: NextRequest) {
     // トイレットペーパー用のテーブルを使用
     let query = supabase
       .from('toilet_paper_products')  // productsではなくtoilet_paper_products
-      .select('*');
-      
+      .select('*')
+      .not('price', 'is', null);  // 在庫切れ（価格がnull）を除外
+
     if (keyword !== 'トイレットペーパー') {
       query = query.ilike('title', `%${keyword}%`);
     }
-    
+
     query = query.order('price_per_m', { ascending: true });
 
     // フィルタ適用
