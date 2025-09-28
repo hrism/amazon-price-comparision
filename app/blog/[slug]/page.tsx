@@ -124,7 +124,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
       )}
       
       {/* コンテンツ */}
-      <article className="prose prose-lg max-w-none 
+      <article className="prose prose-lg max-w-none overflow-x-auto md:overflow-visible
         prose-headings:text-gray-900 prose-h2:text-2xl prose-h2:font-bold prose-h2:mt-8 prose-h2:mb-4 prose-h2:border-b-2 prose-h2:border-gray-200 prose-h2:pb-2
         prose-h3:text-xl prose-h3:font-semibold prose-h3:text-gray-800 prose-h3:mt-6 prose-h3:mb-3
         prose-p:text-gray-700 prose-p:leading-relaxed prose-p:mb-4
@@ -133,9 +133,9 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
         prose-a:prose-strong:text-blue-600 hover:prose-a:prose-strong:text-blue-800
         prose-blockquote:bg-gray-50 prose-blockquote:border-l-4 prose-blockquote:border-gray-400 prose-blockquote:pl-4 prose-blockquote:py-2 prose-blockquote:italic prose-blockquote:text-gray-600 prose-blockquote:text-sm [&_blockquote_p]:text-sm [&_blockquote_p]:leading-relaxed
         prose-ul:text-gray-700 prose-li:mb-2 prose-li:marker:text-gray-500
-        prose-ol:text-gray-700 
+        prose-ol:text-gray-700
         prose-code:bg-gray-100 prose-code:text-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm
-        prose-table:min-w-full prose-table:border-collapse 
+        prose-table:min-w-full prose-table:border-collapse
         prose-th:border prose-th:border-gray-300 prose-th:px-4 prose-th:py-2 prose-th:bg-gray-100 prose-th:text-gray-800 prose-th:font-semibold
         prose-td:border prose-td:border-gray-300 prose-td:px-4 prose-td:py-2 prose-td:text-gray-700
         prose-img:max-h-[360px] prose-img:w-auto prose-img:mx-auto prose-img:rounded-lg prose-img:shadow-lg
