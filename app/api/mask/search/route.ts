@@ -84,7 +84,9 @@ export async function GET(request: NextRequest) {
       }
     }
     
-    query = query.order('price_per_mask', { ascending: true, nullsFirst: false });
+    query = query
+      .order('price_per_mask', { ascending: true, nullsFirst: false })
+      .range(0, 1000);
 
     const { data, error } = await query;
 
