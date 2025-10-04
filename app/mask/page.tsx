@@ -428,6 +428,7 @@ export default function Mask() {
 
             <div className="space-y-3">
               {sortedProducts.slice(0, 20).map((product, index) => {
+                const totalScore = calculateMaskScore(product, filteredProducts, SCORE_WEIGHTS.QUALITY_FOCUSED.review, SCORE_WEIGHTS.QUALITY_FOCUSED.price);
                 return (
                   <ProductCard
                     key={product.asin}
@@ -437,6 +438,7 @@ export default function Mask() {
                     isLocalhost={isLocalhost}
                     refetchingProducts={refetchingProducts}
                     onRefetch={refetchProduct}
+                    totalScore={totalScore}
                     renderBadges={(product) => (
                       <>
                         {product.mask_count && product.mask_count >= 50 && (

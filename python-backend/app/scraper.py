@@ -25,7 +25,7 @@ class AmazonScraper:
                 "intl.accept_languages": "ja,ja-JP"
             })
             
-            self.driver = uc.Chrome(options=options, version_main=139)
+            self.driver = uc.Chrome(options=options, version_main=141)
             self.driver.implicitly_wait(10)
     
     async def _enforce_rate_limit(self):

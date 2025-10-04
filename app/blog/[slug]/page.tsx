@@ -124,7 +124,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
       )}
       
       {/* コンテンツ */}
-      <article className="prose prose-lg max-w-none overflow-x-auto md:overflow-visible
+      <article className="prose prose-lg max-w-none
         prose-headings:text-gray-900 prose-h2:text-2xl prose-h2:font-bold prose-h2:mt-8 prose-h2:mb-4 prose-h2:border-b-2 prose-h2:border-gray-200 prose-h2:pb-2
         prose-h3:text-xl prose-h3:font-semibold prose-h3:text-gray-800 prose-h3:mt-6 prose-h3:mb-3
         prose-p:text-gray-700 prose-p:leading-relaxed prose-p:mb-4
@@ -140,7 +140,8 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
         prose-td:border prose-td:border-gray-300 prose-td:px-4 prose-td:py-2 prose-td:text-gray-700
         prose-img:max-h-[360px] prose-img:w-auto prose-img:mx-auto prose-img:rounded-lg prose-img:shadow-lg
         [&_a>strong]:text-blue-600 [&_a>strong]:hover:text-blue-800">
-        <div dangerouslySetInnerHTML={{ __html: contentWithIds }} />
+        <div className="[&_table]:block [&_table]:overflow-x-auto [&_table]:whitespace-nowrap md:[&_table]:table md:[&_table]:overflow-visible md:[&_table]:whitespace-normal"
+             dangerouslySetInnerHTML={{ __html: contentWithIds }} />
       </article>
       
       {/* SNSシェアボタン */}

@@ -41,8 +41,8 @@ async def scrape_rice(keyword: str = "米", check_out_of_stock: bool = True) -> 
         "intl.accept_languages": "ja,ja-JP"
     })
     
-    # Chrome 139に対応するバージョンを指定
-    driver = uc.Chrome(options=options, version_main=139)
+    # Chrome 141に対応するバージョンを指定
+    driver = uc.Chrome(options=options, version_main=141)
     driver.implicitly_wait(10)
     
     try:
